@@ -5,6 +5,7 @@ const {
   calculateAvailableMenuWidth,
   calculateVisibleLabelCount,
   resolveLaunchMode,
+  resolveLaunchIconFile,
 } = require("../lib/view");
 
 describe("Title Bar package", () => {
@@ -56,10 +57,12 @@ describe("Title Bar package", () => {
     expect(logo.getAttribute("height")).toBe("24");
   });
 
-  it("uses the canonical Lumine logo", () => {
+  it("uses the mode-appropriate Lumine logo", () => {
     const logo = workspaceElement.querySelector(".title-bar .app-icon img");
 
-    expect(logo.src.replace(/\\/g, "/")).toMatch(/\/resources\/app-icons\/lumine\.svg$/);
+    // `--test` forces devMode on (parse-command-line.js), so every spec run
+    // is a dev-mode run and the dev-colored mark is the one actually shown.
+    expect(logo.src.replace(/\\/g, "/")).toMatch(/\/resources\/app-icons\/lumine-dev\.svg$/);
     expect(logo.complete).toBe(true);
     expect(logo.naturalWidth).toBe(128);
   });
@@ -73,6 +76,15 @@ describe("Title Bar package", () => {
     // A bare dev window (packaged build) has neither safe nor source set.
     expect(resolveLaunchMode({ sourceMode: false, devMode: true, safeMode: false })).toBe("dev");
     expect(resolveLaunchMode({ sourceMode: false, devMode: false, safeMode: false })).toBeNull();
+  });
+
+  it("picks the icon file for each mode, safe outranking dev", () => {
+    expect(resolveLaunchIconFile({ devMode: false, safeMode: false })).toBe("lumine.svg");
+    expect(resolveLaunchIconFile({ devMode: true, safeMode: false })).toBe("lumine-dev.svg");
+    expect(resolveLaunchIconFile({ devMode: false, safeMode: true })).toBe("lumine-safe.svg");
+    // There is no separate "source" icon -- safe still wins over dev when
+    // both are set, matching resolveLaunchMode's own priority.
+    expect(resolveLaunchIconFile({ devMode: true, safeMode: true })).toBe("lumine-safe.svg");
   });
 
   it("removes the title bar on deactivate", () => {
