@@ -637,24 +637,24 @@
 }
 
 /* Fix dock toggles being unclickable without a window frame */
-.atom-dock-inner:not(.atom-dock-open) {
+.lumine-dock-inner:not(.lumine-dock-open) {
   pointer-events: none;
 
-  &:not(.bottom) > .atom-dock-mask {
+  &:not(.bottom) > .lumine-dock-mask {
     width: 8px !important;
     pointer-events: none;
     visibility: hidden;
   }
 
-  > .atom-dock-toggle-button {
+  > .lumine-dock-toggle-button {
     pointer-events: all;
   }
 
-  > .atom-dock-toggle-button.left {
+  > .lumine-dock-toggle-button.left {
     margin-left: -8px;
   }
 
-  > .atom-dock-toggle-button.right {
+  > .lumine-dock-toggle-button.right {
     margin-right: -8px;
   }
 }

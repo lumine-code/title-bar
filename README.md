@@ -17,7 +17,7 @@ To install `title-bar` search for _title-bar_ in the Install pane of the Lumine 
 
 ## Commands
 
-Commands available in `atom-workspace`:
+Commands available in `lumine-workspace`:
 
 - `title-bar:toggle`: toggle title bar visibility,
 - `title-bar:focus-menu`: focus the first menu label for keyboard navigation.

@@ -12,9 +12,9 @@ describe("Title Bar package", () => {
   let workspaceElement;
 
   beforeEach(() => {
-    workspaceElement = atom.views.getView(atom.workspace);
+    workspaceElement = lumine.views.getView(lumine.workspace);
 
-    waitsForPromise(() => atom.packages.activatePackage("title-bar"));
+    waitsForPromise(() => lumine.packages.activatePackage("title-bar"));
   });
 
   it("adds a custom title bar to the workspace header", () => {
@@ -88,7 +88,7 @@ describe("Title Bar package", () => {
   });
 
   it("removes the title bar on deactivate", () => {
-    waitsForPromise(() => Promise.resolve(atom.packages.deactivatePackage("title-bar")));
+    waitsForPromise(() => Promise.resolve(lumine.packages.deactivatePackage("title-bar")));
 
     runs(() => {
       expect(workspaceElement.querySelector(".title-bar")).toBeNull();
@@ -249,9 +249,9 @@ describe("Title Bar package", () => {
       const altUp = () => ({ key: "Alt", stopPropagation() {}, preventDefault() {} });
 
       beforeEach(() => {
-        atom.config.set("title-bar.altGivesFocus", true);
+        lumine.config.set("title-bar.altGivesFocus", true);
         // Alt-wheel amplification enabled unless a test overrides it.
-        atom.config.set("editor.altWheelMultiplier", 7.5);
+        lumine.config.set("editor.altWheelMultiplier", 7.5);
       });
 
       it("focuses the first label when Alt is tapped without an intervening scroll", () => {
@@ -275,7 +275,7 @@ describe("Title Bar package", () => {
       });
 
       it("still activates the menu when the alt-wheel multiplier is disabled", () => {
-        atom.config.set("editor.altWheelMultiplier", 1);
+        lumine.config.set("editor.altWheelMultiplier", 1);
         appMenu = ApplicationMenu.createApplicationMenu(template, parent);
 
         appMenu.onKeyDown(altDown());
@@ -300,9 +300,9 @@ describe("Title Bar package", () => {
   describe("the hidden dock hover strip", () => {
     it("does not collapse a dock revealed as a drop target", () => {
       jasmine.attachToDOM(workspaceElement);
-      const dock = atom.workspace.getRightDock();
-      const inner = () => dock.getElement().querySelector(".atom-dock-inner");
-      const mask = () => inner().querySelector(".atom-dock-mask");
+      const dock = lumine.workspace.getRightDock();
+      const inner = () => dock.getElement().querySelector(".lumine-dock-inner");
+      const mask = () => inner().querySelector(".lumine-dock-mask");
 
       // A hidden side dock is widened into an invisible strip, so its toggle button
       // stays reachable past the resize border a frameless window puts at the edge.
