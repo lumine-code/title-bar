@@ -57,13 +57,23 @@ describe("Title Bar package", () => {
     expect(logo.getAttribute("height")).toBe("24");
   });
 
-  it("uses the mode-appropriate Lumine logo", () => {
+  it("uses the mode-appropriate Lumine logo", async () => {
     const logo = workspaceElement.querySelector(".title-bar .app-icon img");
 
     // `--test` forces devMode on (parse-command-line.js), so every spec run
     // is a dev-mode run and the dev-colored mark is the one actually shown.
     expect(logo.src.replace(/\\/g, "/")).toMatch(/\/resources\/app-icons\/lumine-dev\.svg$/);
-    expect(logo.complete).toBe(true);
+
+    // The decode is asynchronous and nothing before this point awaits it, so
+    // `complete` is a race — assert it only after the load settles. `error`
+    // resolves too rather than hanging, so a missing icon fails on
+    // naturalWidth instead of timing the spec out.
+    await new Promise((resolve) => {
+      if (logo.complete) return resolve();
+      logo.addEventListener("load", resolve, { once: true });
+      logo.addEventListener("error", resolve, { once: true });
+    });
+
     expect(logo.naturalWidth).toBe(128);
   });
 
