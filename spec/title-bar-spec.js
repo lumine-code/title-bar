@@ -104,6 +104,31 @@ describe("Title Bar package", () => {
     expect(workspaceElement.querySelector(".title-bar")).toBeNull();
   });
 
+  // The strip is inset from the window top, and every interactive item in it
+  // reaches back into that inset so its hit target touches the screen edge on a
+  // maximised window, padding its content back down to stay centred. A tile
+  // that skipped it stopped 4px short of the app menu beside it under any theme
+  // drawing tiles full height.
+  it("bleeds a control tile the same as the application menu's labels", () => {
+    jasmine.attachToDOM(workspaceElement);
+    const titleBar = workspaceElement.querySelector(".title-bar");
+    const controlTiles = titleBar.querySelector(".control-tiles");
+
+    const button = document.createElement("button");
+    button.classList.add("title-bar-item");
+    controlTiles.appendChild(button);
+
+    const label = titleBar.querySelector(".app-menu .menu-label");
+    const tileStyle = getComputedStyle(button);
+    const labelStyle = getComputedStyle(label);
+
+    expect(tileStyle.marginTop).toBe(labelStyle.marginTop);
+    expect(tileStyle.paddingTop).toBe(labelStyle.paddingTop);
+    expect(button.getBoundingClientRect().height).toBe(label.getBoundingClientRect().height);
+
+    button.remove();
+  });
+
   describe("control tiles", () => {
     let controlTiles;
 
