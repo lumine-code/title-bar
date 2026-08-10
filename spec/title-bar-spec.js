@@ -11,10 +11,10 @@ const {
 describe("Title Bar package", () => {
   let workspaceElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     workspaceElement = lumine.views.getView(lumine.workspace);
 
-    waitsForPromise(() => lumine.packages.activatePackage("title-bar"));
+    await lumine.packages.activatePackage("title-bar");
   });
 
   it("adds a custom title bar to the workspace header", () => {
@@ -97,12 +97,10 @@ describe("Title Bar package", () => {
     expect(resolveLaunchIconFile({ devMode: true, safeMode: true })).toBe("lumine-safe.svg");
   });
 
-  it("removes the title bar on deactivate", () => {
-    waitsForPromise(() => Promise.resolve(lumine.packages.deactivatePackage("title-bar")));
+  it("removes the title bar on deactivate", async () => {
+    await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
 
-    runs(() => {
-      expect(workspaceElement.querySelector(".title-bar")).toBeNull();
-    });
+    expect(workspaceElement.querySelector(".title-bar")).toBeNull();
   });
 
   describe("keystroke formatting", () => {
