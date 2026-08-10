@@ -180,17 +180,30 @@
     pointer-events: none;
   }
 
-  /* Exactly the bar's height, unlike `.window-buttons` beside it: those reach
-     4px back up into the bar's top margin so their hit target touches the
-     screen edge when the window is maximised, which is what makes them easy to
-     hit. Control tiles sit in the middle of the strip, where that buys
-     nothing and only skews a theme's inset tile 4px upwards. */
+  /* The strip sits below the window top, and every interactive item in it
+     reaches back into that inset so its hit target touches the screen edge on
+     a maximised window — `.app-menu`'s labels and `.window-buttons` both do.
+
+     The bleed belongs to this row, not to the tiles inside it. This row clips
+     its overflow so a long window title cannot push a tile out of the bar, and
+     a clip is taken at the padding box: a tile that bled on its own would be
+     laid out reaching the window edge and then have exactly that part painted
+     away — which is invisible to `getBoundingClientRect`, so measure the
+     pixels, not the box. Bleed the row and the clip moves with it.
+
+     A theme drawing an inset pill sets `--title-bar-item-bleed: 0px` here, on
+     the row, because a pill is measured against the bar rather than the
+     window — and because the row is what has to stop clipping above it. It
+     must be a length: `calc(100% + 0)` is invalid, so a unitless zero drops
+     the height to `auto` and collapses the row to its content. */
   .control-tiles {
+    --title-bar-item-bleed: 4px;
     -webkit-app-region: no-drag;
     app-region: no-drag;
     display: flex;
     align-items: center;
-    height: 100%;
+    height: calc(100% + var(--title-bar-item-bleed));
+    margin-top: calc(var(--title-bar-item-bleed) * -1);
     margin-left: auto;
     order: 2;
     margin-right: 12px;
@@ -215,20 +228,15 @@
        `.title-bar-item` on — never `.inline-block`, which is a layout utility
        packages also use *inside* a tile.
 
-       The strip is inset from the window top, and every interactive item in it
-       reaches back up into that inset so its hit target touches the screen
-       edge when the window is maximised, then pads its content back down so
-       the glyph still centres on the bar. `.app-menu`'s labels and the window
-       buttons both do this, so a tile drawn full height lines up with them. A
-       theme that insets the tile into a pill instead sets the bleed to `0`,
-       because a pill is measured against the bar rather than the window. */
+       The tile fills the row, which has already bled up to the window edge, and
+       pads its content back down so the glyph still centres on the bar — the
+       same shape `.window-buttons` gives its buttons. */
     .title-bar-item {
-      --title-bar-item-bleed: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: calc(100% + var(--title-bar-item-bleed));
-      margin: calc(var(--title-bar-item-bleed) * -1) 0 0;
+      height: 100%;
+      margin: 0;
       padding: var(--title-bar-item-bleed) 0 0;
       border: none;
       background: transparent;

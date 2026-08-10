@@ -119,12 +119,20 @@ describe("Title Bar package", () => {
     controlTiles.appendChild(button);
 
     const label = titleBar.querySelector(".app-menu .menu-label");
-    const tileStyle = getComputedStyle(button);
-    const labelStyle = getComputedStyle(label);
+    const tileBox = button.getBoundingClientRect();
+    const labelBox = label.getBoundingClientRect();
 
-    expect(tileStyle.marginTop).toBe(labelStyle.marginTop);
-    expect(tileStyle.paddingTop).toBe(labelStyle.paddingTop);
-    expect(button.getBoundingClientRect().height).toBe(label.getBoundingClientRect().height);
+    expect(Math.round(tileBox.top)).toBe(Math.round(labelBox.top));
+    expect(Math.round(tileBox.bottom)).toBe(Math.round(labelBox.bottom));
+    expect(getComputedStyle(button).paddingTop).toBe(getComputedStyle(label).paddingTop);
+
+    // The row clips its overflow so a long window title cannot push a tile out
+    // of the bar, and a clip is taken at the padding box — so the row has to
+    // start no lower than the tile, or the bleed is laid out and then painted
+    // away. `getBoundingClientRect` reports the unclipped box and says nothing
+    // about it, which is exactly how this went unnoticed.
+    const rowBox = controlTiles.getBoundingClientRect();
+    expect(Math.round(rowBox.top)).toBe(Math.round(tileBox.top));
 
     button.remove();
   });
