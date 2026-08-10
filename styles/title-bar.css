@@ -180,13 +180,17 @@
     pointer-events: none;
   }
 
+  /* Exactly the bar's height, unlike `.window-buttons` beside it: those reach
+     4px back up into the bar's top margin so their hit target touches the
+     screen edge when the window is maximised, which is what makes them easy to
+     hit. Control tiles sit in the middle of the strip, where that buys
+     nothing and only skews a theme's inset tile 4px upwards. */
   .control-tiles {
     -webkit-app-region: no-drag;
     app-region: no-drag;
     display: flex;
     align-items: center;
-    height: calc(100% + 4px);
-    margin-top: -4px;
+    height: 100%;
     margin-left: auto;
     order: 2;
     margin-right: 12px;
@@ -205,7 +209,12 @@
       app-region: no-drag;
     }
 
-    .inline-block {
+    /* The box a control tile sits in, and nothing about how it looks: colour,
+       hover feedback and rounding are the UI theme's, the same division the
+       status bar uses. A tile is the element this bar stamped
+       `.title-bar-item` on — never `.inline-block`, which is a layout utility
+       packages also use *inside* a tile. */
+    .title-bar-item {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -214,7 +223,6 @@
       padding: 0;
       border: none;
       background: transparent;
-      color: var(--text-color-subtle);
       cursor: default;
       transition:
         background-color var(--title-bar-transition-normal) ease,
@@ -222,15 +230,6 @@
 
       svg {
         display: block;
-      }
-
-      &:hover {
-        background-color: rgb(from var(--text-color) r g b / 10%);
-        color: var(--text-color);
-      }
-
-      &:active {
-        background-color: rgb(from var(--text-color) r g b / 6%);
       }
     }
   }
