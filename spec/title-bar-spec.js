@@ -1,5 +1,6 @@
 const { Utils } = require("../lib/utils");
 const { ApplicationMenu } = require("../lib/app-menu");
+const { ControlTiles } = require("../lib/control-tiles");
 const { MenuLabel } = require("../lib/label");
 const {
   calculateAvailableMenuWidth,
@@ -101,6 +102,46 @@ describe("Title Bar package", () => {
     await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
 
     expect(workspaceElement.querySelector(".title-bar")).toBeNull();
+  });
+
+  describe("control tiles", () => {
+    let controlTiles;
+
+    beforeEach(() => {
+      controlTiles = new ControlTiles(document.createElement("div"));
+    });
+
+    it("stamps the tile class on a hosted element", () => {
+      const button = document.createElement("button");
+      controlTiles.addItem({ item: button, priority: 10 });
+
+      expect(button.classList).toContain("title-bar-item");
+    });
+
+    // The bar hands the element back to whoever gave it, so it must not keep
+    // a class that says the element is still hosted.
+    it("removes it again when the tile is destroyed", () => {
+      const button = document.createElement("button");
+      const tile = controlTiles.addItem({ item: button, priority: 10 });
+      tile.destroy();
+
+      expect(button.classList).not.toContain("title-bar-item");
+    });
+
+    // A tile is the element the bar hosts, never a block nested inside one:
+    // packages use `.inline-block` for layout within a tile, so a theme keying
+    // on that paints the nesting as a second tile.
+    it("does not stamp anything the item nests inside itself", () => {
+      const button = document.createElement("button");
+      const inner = document.createElement("span");
+      inner.classList.add("inline-block");
+      button.appendChild(inner);
+
+      controlTiles.addItem({ item: button, priority: 10 });
+
+      expect(button.classList).toContain("title-bar-item");
+      expect(inner.classList).not.toContain("title-bar-item");
+    });
   });
 
   describe("keystroke formatting", () => {

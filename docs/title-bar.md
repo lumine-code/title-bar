@@ -55,7 +55,7 @@ const { Disposable } = require("lumine");
 module.exports = {
   consumeTitleBar(titleBar) {
     const button = document.createElement("button");
-    button.classList.add("btn", "icon", "icon-versions");
+    button.classList.add("icon", "icon-versions");
     button.addEventListener("click", () => this.toggleLayout());
 
     const tile = titleBar.addItem({ item: button, priority: 10 });
@@ -63,6 +63,14 @@ module.exports = {
   },
 };
 ```
+
+## Styling
+
+**The bar stamps `.title-bar-item` on the element it hosts, and removes it again when the tile is destroyed.** That class is what makes a tile a tile: themes key their size, rounding and hover feedback on it, so your element needs no class of its own to look like the window controls beside it. Add one only to style your own content.
+
+Do **not** reach for `.inline-block` to mark the tile. It is a layout utility from core's `layout.css`, useful _inside_ a tile, and it says nothing about where a tile starts.
+
+A title-bar tile is a square icon button — reserve it for a glyph, not a label. The strip is a drag region, and the bar exempts every tile from that automatically.
 
 ## Behavior
 
