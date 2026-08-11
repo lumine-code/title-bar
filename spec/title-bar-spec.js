@@ -161,6 +161,27 @@ describe("Title Bar package", () => {
       expect(button.classList).not.toContain("title-bar-item");
     });
 
+    // A group carries several controls in as one entry. It is a layout box, so
+    // the mark belongs on each control: left on the group, a theme paints one
+    // rectangle across the lot and a second inside it.
+    it("stamps a group's tiles rather than the group", () => {
+      const group = document.createElement("title-bar-tile-group");
+      const first = document.createElement("title-bar-tile");
+      const second = document.createElement("title-bar-tile");
+      group.appendChild(first);
+      group.appendChild(second);
+
+      const tile = controlTiles.addItem({ item: group, priority: 10 });
+
+      expect(group.classList).not.toContain("title-bar-item");
+      expect(first.classList).toContain("title-bar-item");
+      expect(second.classList).toContain("title-bar-item");
+
+      tile.destroy();
+      expect(first.classList).not.toContain("title-bar-item");
+      expect(second.classList).not.toContain("title-bar-item");
+    });
+
     // A tile is the element the bar hosts, never a block nested inside one:
     // packages use `.inline-block` for layout within a tile, so a theme keying
     // on that paints the nesting as a second tile.
