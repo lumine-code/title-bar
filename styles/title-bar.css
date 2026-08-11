@@ -2,6 +2,10 @@
    CSS Custom Properties (User Customizable)
    Override these in your styles.css to customize the title bar appearance.
    Example: :root { --title-bar-height: 40px; }
+
+   They are declared on :root rather than on .title-bar because the context
+   menu and both submenu portals are children of <body>, not of the bar -- a
+   value set on .title-bar would never reach them.
    ============================================================================ */
 
 :root {
@@ -10,6 +14,10 @@
   --title-bar-control-width: 46px;
   --title-bar-icon-size: 24px;
   --title-bar-icon-margin: 8px;
+
+  /* Type. --font-family is the theme's UI font, which resolves to the
+     platform's own on each of the three. */
+  --title-bar-font-family: var(--font-family);
 
   /* Menu */
   --title-bar-menu-font-size: var(--font-size);
@@ -49,6 +57,157 @@
   --title-bar-gnome-close-hover-color: #fff;
   --title-bar-gnome-button-hover-bg: rgb(from var(--text-color) r g b / 12%);
   --title-bar-gnome-button-active-bg: rgb(from var(--text-color) r g b / 18%);
+}
+
+/* ============================================================================
+   Menu boxes
+
+   Every menu surface this package draws carries `.menu-box`: the application
+   menu's dropdowns, the context menu, and the portaled submenus of both. So
+   one rule set dresses all four, and only where each is positioned differs.
+   The four roots keep the selector off anybody else's `.menu-box`.
+   ============================================================================ */
+
+.title-bar .menu-box,
+.context-menu-container .menu-box,
+.app-menu-submenu-portal .menu-box,
+.context-menu-submenu-portal .menu-box {
+  min-width: var(--title-bar-menu-box-min-width);
+  padding: 6px 0;
+  border: 1px solid var(--overlay-border-color);
+  border-radius: var(--title-bar-menu-box-radius);
+  background-color: var(--overlay-background-color);
+  box-shadow: var(--title-bar-menu-box-shadow);
+  font-family: var(--title-bar-font-family);
+  font-size: var(--title-bar-menu-font-size);
+  font-weight: 400;
+  cursor: default;
+  contain: layout style;
+  -webkit-user-select: none;
+  user-select: none;
+
+  hr {
+    height: 1px;
+    margin: 4px 0;
+    border: none;
+    background-color: var(--base-border-color);
+
+    /* A separator that survived normalization at the edge of a box draws a
+       rule against the box's own border. */
+    &:first-child,
+    &:last-child {
+      display: none;
+    }
+  }
+
+  .menu-item {
+    display: flex;
+    position: relative;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--title-bar-menu-item-height);
+    padding: 0 var(--title-bar-menu-item-padding);
+    margin: 0 var(--title-bar-menu-item-margin);
+    border-radius: var(--title-bar-menu-item-radius);
+    color: var(--text-color);
+    transition: background-color var(--title-bar-transition-fast) ease;
+
+    &.disabled {
+      color: var(--text-color-subtle);
+    }
+
+    &.invisible {
+      display: none;
+    }
+
+    .menu-item-name {
+      white-space: nowrap;
+    }
+
+    .menu-item-keystroke {
+      display: inline-flex;
+      align-items: center;
+      height: 100%;
+      margin-left: 24px;
+      color: var(--text-color-subtle);
+      font-size: var(--title-bar-menu-font-size);
+      white-space: nowrap;
+    }
+
+    &:hover:not(.disabled),
+    &.selected:not(.disabled) {
+      background-color: var(--background-color-highlight);
+    }
+
+    &:active:not(.disabled) {
+      background-color: var(--background-color-selected);
+    }
+
+    /* The submenu arrow rides in the keystroke slot -- an item with a submenu
+       never has a keystroke of its own. */
+    &.has-sub > .menu-item-keystroke:after {
+      content: "";
+      display: block;
+      width: 0;
+      height: 0;
+      margin-left: 8px;
+      margin-right: -4px;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 5px solid currentColor;
+      opacity: 0.7;
+    }
+
+    /* A recent project that spans several folders lists them one per line. */
+    &.menu-item-multipath {
+      height: auto;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      align-items: flex-start;
+
+      .menu-item-path-line {
+        line-height: 20px;
+        white-space: nowrap;
+      }
+    }
+
+    &.bounce {
+      animation: item-bounce 0.15s ease;
+    }
+
+    .menu-item-submenu {
+      position: absolute;
+      visibility: hidden;
+    }
+
+    &.open > .menu-item-submenu {
+      visibility: visible;
+    }
+  }
+
+  /* Mark which submenu is open, but only while the pointer is elsewhere --
+     under the pointer the hover highlight already says so. */
+  &:not(:hover) .menu-item.open {
+    background-color: var(--background-color-highlight);
+  }
+}
+
+/* The boxes that scroll: a top-level one, whose height the JS caps against the
+   viewport. A nested submenu is portaled and appears below under its portal's
+   own selector. `direction` moves the scrollbar to the inner edge, where it
+   does not sit between the menu and the item that opened it; every child turns
+   it back so the text still reads left to right. */
+.title-bar .app-menu .menu-label > .menu-box,
+.context-menu-container > .menu-box,
+.app-menu-submenu-portal > .menu-box,
+.context-menu-submenu-portal > .menu-box {
+  overflow-x: hidden;
+  overflow-y: auto;
+  direction: rtl;
+
+  > * {
+    direction: ltr;
+  }
 }
 
 /* ============================================================================
@@ -105,6 +264,10 @@
   border-bottom-width: 0;
 }
 
+/* ============================================================================
+   The bar
+   ============================================================================ */
+
 .title-bar {
   -webkit-app-region: drag;
   app-region: drag;
@@ -114,6 +277,7 @@
   position: relative;
   width: 100%;
   height: var(--title-bar-height);
+  margin-top: 4px;
   color: var(--text-color);
   background-color: var(--app-background-color);
   cursor: default;
@@ -121,13 +285,12 @@
   user-select: none;
   overflow: visible;
   z-index: 900;
-  font-family: "Segoe UI", var(--font-family);
+  contain: layout style;
+  font-family: var(--title-bar-font-family);
 
   &.no-title-bar {
     display: none;
   }
-  margin-top: 4px;
-  contain: layout style;
 
   .app-icon {
     -webkit-app-region: no-drag;
@@ -166,12 +329,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-family:
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      sans-serif;
+    font-family: var(--title-bar-font-family);
     font-size: var(--title-bar-title-font-size);
     font-weight: 400;
     color: var(--text-color);
@@ -320,41 +478,6 @@
     }
   }
 
-  .title-bar-tiles {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-    display: flex;
-    align-items: center;
-    height: 100%;
-    /* gap: 4px; */
-
-    &:empty {
-      display: none;
-    }
-
-    &,
-    * {
-      -webkit-app-region: no-drag;
-      app-region: no-drag;
-    }
-
-    &.tiles-left {
-      order: 1;
-      margin-left: 8px;
-    }
-
-    &.tiles-right {
-      order: 4;
-      margin-right: 8px;
-    }
-
-    > * {
-      display: inline-flex;
-      align-items: center;
-      height: 100%;
-    }
-  }
-
   .app-menu {
     -webkit-app-region: drag;
     app-region: drag;
@@ -365,7 +488,6 @@
     height: 100%;
     order: 1;
     padding-left: var(--title-bar-menu-label-padding);
-    font-family: "Segoe UI", var(--font-family);
     font-weight: 400;
     font-size: var(--title-bar-menu-font-size);
     overflow: visible;
@@ -401,13 +523,14 @@
       margin-top: -4px;
       padding: 0 var(--title-bar-menu-label-padding);
       padding-top: 4px;
+      color: var(--text-color);
       opacity: 1;
       transform: translateX(0);
       transition:
         opacity var(--title-bar-transition-slow) ease,
         transform var(--title-bar-transition-slow) ease;
 
-      /* Stagger animation for each menu label (0.02s per label) */
+      /* Stagger the reveal, leftmost first, 0.02s apart. */
       &:nth-child(1) {
         transition-delay: 0s;
       }
@@ -432,7 +555,6 @@
       &:nth-child(8) {
         transition-delay: 0.14s;
       }
-      color: var(--text-color);
 
       &.overflowed {
         display: none;
@@ -457,163 +579,24 @@
         z-index: -1;
       }
 
-      .menu-box {
+      /* The dropdown hangs off the label, which is what makes it follow the
+         label when the bar reflows. JS caps its height and nudges its left
+         edge back inside the viewport. */
+      > .menu-box {
         display: block;
         visibility: hidden;
         position: absolute;
         top: 100%;
         left: 0;
         margin-top: 2px;
-        z-index: 99999;
         transform: translate(-4px, 0);
-        will-change: visibility;
+        z-index: 99999;
+      }
 
-        /* Shared menu box base (inline-expanded) */
-        min-width: var(--title-bar-menu-box-min-width);
-        background-color: var(--overlay-background-color);
-        cursor: default;
-        border: 1px solid var(--overlay-border-color);
-        border-radius: var(--title-bar-menu-box-radius);
-        box-shadow: var(--title-bar-menu-box-shadow);
-        padding: 6px 0;
-        font-family: "Segoe UI", var(--font-family);
-        font-size: var(--title-bar-menu-font-size);
-        font-weight: 400;
-        contain: layout style;
-        -webkit-user-select: none;
-        user-select: none;
-
-        /* Menu scrollable (inline-expanded) */
-        overflow-y: auto;
-        overflow-x: hidden;
-        direction: rtl;
-
-        > * {
-          direction: ltr;
-        }
-
-        /* Shared menu box content (inline-expanded) */
-        hr {
-          height: 1px;
-          border: none;
-          background-color: var(--base-border-color);
-          margin: 4px 0;
-
-          &:first-child,
-          &:last-child {
-            display: none;
-          }
-        }
-
-        .menu-item {
-          display: flex;
-          position: relative;
-          align-items: center;
-          justify-content: space-between;
-          height: var(--title-bar-menu-item-height);
-          padding: 0 var(--title-bar-menu-item-padding);
-          margin: 0 var(--title-bar-menu-item-margin);
-          border-radius: var(--title-bar-menu-item-radius);
-          color: var(--text-color);
-          transition: background-color var(--title-bar-transition-fast) ease;
-
-          &.disabled {
-            color: var(--text-color-subtle);
-          }
-
-          &.invisible {
-            display: none;
-          }
-
-          .menu-item-keystroke {
-            display: inline-flex;
-            align-items: center;
-            height: 100%;
-            white-space: nowrap;
-            margin-left: 24px;
-            color: var(--text-color-subtle);
-            font-size: var(--title-bar-menu-font-size);
-          }
-
-          &:hover:not(.disabled),
-          &.selected:not(.disabled) {
-            background-color: var(--background-color-highlight);
-          }
-
-          &:active:not(.disabled) {
-            background-color: var(--background-color-selected);
-          }
-
-          .menu-item-submenu {
-            position: absolute;
-          }
-
-          &.has-sub > .menu-item-keystroke:after {
-            content: "";
-            display: block;
-            width: 0;
-            height: 0;
-            border-top: 4px solid transparent;
-            border-bottom: 4px solid transparent;
-            border-left: 5px solid currentColor;
-            margin-left: 8px;
-            margin-right: -4px;
-            opacity: 0.7;
-          }
-
-          .menu-item-name {
-            white-space: nowrap;
-          }
-
-          &.menu-item-multipath {
-            height: auto;
-            padding-top: 4px;
-            padding-bottom: 4px;
-            align-items: flex-start;
-
-            .menu-item-path-line {
-              line-height: 20px;
-              white-space: nowrap;
-            }
-          }
-
-          &.bounce {
-            animation: item-bounce 0.15s ease;
-          }
-        }
-
-        .menu-item-submenu {
-          display: block;
-          visibility: hidden;
-          /* Shared menu box base (inline-expanded) */
-          min-width: var(--title-bar-menu-box-min-width);
-          background-color: var(--overlay-background-color);
-          cursor: default;
-          border: 1px solid var(--overlay-border-color);
-          border-radius: var(--title-bar-menu-box-radius);
-          box-shadow: var(--title-bar-menu-box-shadow);
-          padding: 6px 0;
-          font-family: "Segoe UI", var(--font-family);
-          font-size: var(--title-bar-menu-font-size);
-          font-weight: 400;
-          contain: layout style;
-          -webkit-user-select: none;
-          user-select: none;
-        }
-
-        .menu-item.open > .menu-item-submenu {
-          visibility: visible;
-        }
-
-        /* Show .open highlight only when menu-box is not being hovered */
-        &:not(:hover) .menu-item.open {
-          background-color: var(--background-color-highlight);
-        }
-
-        /* App menu specific: submenu offset */
-        .menu-item .menu-item-submenu {
-          top: -6px;
-        }
+      /* A submenu drawn in place rather than through the portal sits level
+         with its item, minus the box's own padding. */
+      .menu-item .menu-item-submenu {
+        top: -6px;
       }
     }
 
@@ -647,29 +630,6 @@
   }
 }
 
-/* Fix dock toggles being unclickable without a window frame */
-.lumine-dock-inner:not(.lumine-dock-open) {
-  pointer-events: none;
-
-  &:not(.bottom) > .lumine-dock-mask {
-    width: 8px !important;
-    pointer-events: none;
-    visibility: hidden;
-  }
-
-  > .lumine-dock-toggle-button {
-    pointer-events: all;
-  }
-
-  > .lumine-dock-toggle-button.left {
-    margin-left: -8px;
-  }
-
-  > .lumine-dock-toggle-button.right {
-    margin-right: -8px;
-  }
-}
-
 @keyframes item-bounce {
   0% {
     transform: scale(1);
@@ -682,7 +642,9 @@
   }
 }
 
-/* Window Control Themes */
+/* ============================================================================
+   Window Control Themes
+   ============================================================================ */
 
 /** macOS Tahoe style */
 .title-bar.theme-macos-tahoe {
@@ -758,16 +720,8 @@
       }
     }
   }
-}
 
-body.is-blurred {
-  .title-bar.theme-macos-tahoe .window-buttons:not(:hover) button::before {
-    background-color: var(--title-bar-macos-blurred);
-  }
-}
-
-/* macOS: Move logo to right side */
-.title-bar.theme-macos-tahoe {
+  /* The logo moves to the trailing edge and the menu follows the controls. */
   .app-icon {
     order: 10;
     margin-left: 0;
@@ -782,7 +736,7 @@ body.is-blurred {
       transform: translateX(12px);
     }
 
-    /* Reverse stagger animation order (rightmost appears first, 0.02s per label) */
+    /* Stagger from the right, since that is the edge the menu is anchored to. */
     .menu-label {
       &:nth-last-child(1) {
         transition-delay: 0s;
@@ -809,6 +763,12 @@ body.is-blurred {
         transition-delay: 0.14s;
       }
     }
+  }
+}
+
+body.is-blurred {
+  .title-bar.theme-macos-tahoe .window-buttons:not(:hover) button::before {
+    background-color: var(--title-bar-macos-blurred);
   }
 }
 
@@ -877,7 +837,7 @@ body.is-blurred {
 }
 
 /* ============================================================================
-   Context Menu (right-click menu)
+   Context menu (right-click menu)
    ============================================================================ */
 
 .context-menu-container {
@@ -886,160 +846,24 @@ body.is-blurred {
   pointer-events: auto;
   cursor: default;
 
-  .context-menu-box {
+  > .menu-box {
     display: block;
+  }
 
-    /* Shared menu box base (inline-expanded) */
-    min-width: var(--title-bar-menu-box-min-width);
-    background-color: var(--overlay-background-color);
-    cursor: default;
-    border: 1px solid var(--overlay-border-color);
-    border-radius: var(--title-bar-menu-box-radius);
-    box-shadow: var(--title-bar-menu-box-shadow);
-    padding: 6px 0;
-    font-family: "Segoe UI", var(--font-family);
-    font-size: var(--title-bar-menu-font-size);
-    font-weight: 400;
-    contain: layout style;
-    -webkit-user-select: none;
-    user-select: none;
-
-    /* Menu scrollable (inline-expanded) */
-    overflow-y: auto;
-    overflow-x: hidden;
-    direction: rtl;
-
-    > * {
-      direction: ltr;
-    }
-
-    /* Shared menu box content (inline-expanded) */
-    hr {
-      height: 1px;
-      border: none;
-      background-color: var(--base-border-color);
-      margin: 4px 0;
-
-      &:first-child,
-      &:last-child {
-        display: none;
-      }
-    }
-
-    .menu-item {
-      display: flex;
-      position: relative;
-      align-items: center;
-      justify-content: space-between;
-      height: var(--title-bar-menu-item-height);
-      padding: 0 var(--title-bar-menu-item-padding);
-      margin: 0 var(--title-bar-menu-item-margin);
-      border-radius: var(--title-bar-menu-item-radius);
-      color: var(--text-color);
-      transition: background-color var(--title-bar-transition-fast) ease;
-
-      &.disabled {
-        color: var(--text-color-subtle);
-      }
-
-      &.invisible {
-        display: none;
-      }
-
-      .menu-item-keystroke {
-        display: inline-flex;
-        align-items: center;
-        height: 100%;
-        white-space: nowrap;
-        margin-left: 24px;
-        color: var(--text-color-subtle);
-        font-size: var(--title-bar-menu-font-size);
-      }
-
-      &:hover:not(.disabled),
-      &.selected:not(.disabled) {
-        background-color: var(--background-color-highlight);
-      }
-
-      &:active:not(.disabled) {
-        background-color: var(--background-color-selected);
-      }
-
-      .menu-item-submenu {
-        position: absolute;
-      }
-
-      &.has-sub > .menu-item-keystroke:after {
-        content: "";
-        display: block;
-        width: 0;
-        height: 0;
-        border-top: 4px solid transparent;
-        border-bottom: 4px solid transparent;
-        border-left: 5px solid currentColor;
-        margin-left: 8px;
-        margin-right: -4px;
-        opacity: 0.7;
-      }
-
-      .menu-item-name {
-        white-space: nowrap;
-      }
-
-      &.menu-item-multipath {
-        height: auto;
-        padding-top: 4px;
-        padding-bottom: 4px;
-        align-items: flex-start;
-
-        .menu-item-path-line {
-          line-height: 20px;
-          white-space: nowrap;
-        }
-      }
-
-      &.bounce {
-        animation: item-bounce 0.15s ease;
-      }
-    }
-
-    .menu-item-submenu {
-      display: block;
-      visibility: hidden;
-      /* Shared menu box base (inline-expanded) */
-      min-width: var(--title-bar-menu-box-min-width);
-      background-color: var(--overlay-background-color);
-      cursor: default;
-      border: 1px solid var(--overlay-border-color);
-      border-radius: var(--title-bar-menu-box-radius);
-      box-shadow: var(--title-bar-menu-box-shadow);
-      padding: 6px 0;
-      font-family: "Segoe UI", var(--font-family);
-      font-size: var(--title-bar-menu-font-size);
-      font-weight: 400;
-      contain: layout style;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .menu-item.open > .menu-item-submenu {
-      visibility: visible;
-    }
-
-    /* Show .open highlight only when menu-box is not being hovered */
-    &:not(:hover) .menu-item.open {
-      background-color: var(--background-color-highlight);
-    }
-
-    /* Context menu specific: disabled items not clickable */
-    .menu-item.disabled {
-      pointer-events: none;
-    }
+  /* Unlike the application menu, a disabled item here is inert: the context
+     menu keeps its selection on the item the pointer last reached, and a
+     disabled row must not take it. */
+  .menu-item.disabled {
+    pointer-events: none;
   }
 }
 
 /* ============================================================================
-   App Menu Submenu Portal (for scroll support)
+   Submenu portals
+
+   A submenu is drawn out of its parent box so it is not clipped by the
+   parent's own scrolling. JS places each one; these rules only take it out of
+   the flow and keep the container from eating clicks meant for the page.
    ============================================================================ */
 
 .app-menu-submenu-portal,
@@ -1054,148 +878,6 @@ body.is-blurred {
     position: fixed;
     pointer-events: auto;
     visibility: hidden;
-
-    /* Shared menu box base (inline-expanded) */
-    min-width: var(--title-bar-menu-box-min-width);
-    background-color: var(--overlay-background-color);
-    cursor: default;
-    border: 1px solid var(--overlay-border-color);
-    border-radius: var(--title-bar-menu-box-radius);
-    box-shadow: var(--title-bar-menu-box-shadow);
-    padding: 6px 0;
-    font-family: "Segoe UI", var(--font-family);
-    font-size: var(--title-bar-menu-font-size);
-    font-weight: 400;
-    contain: layout style;
-    -webkit-user-select: none;
-    user-select: none;
-
-    /* Menu scrollable (inline-expanded) */
-    overflow-y: auto;
-    overflow-x: hidden;
-    direction: rtl;
-
-    > * {
-      direction: ltr;
-    }
-
-    /* Shared menu box content (inline-expanded) */
-    hr {
-      height: 1px;
-      border: none;
-      background-color: var(--base-border-color);
-      margin: 4px 0;
-
-      &:first-child,
-      &:last-child {
-        display: none;
-      }
-    }
-
-    .menu-item {
-      display: flex;
-      position: relative;
-      align-items: center;
-      justify-content: space-between;
-      height: var(--title-bar-menu-item-height);
-      padding: 0 var(--title-bar-menu-item-padding);
-      margin: 0 var(--title-bar-menu-item-margin);
-      border-radius: var(--title-bar-menu-item-radius);
-      color: var(--text-color);
-      transition: background-color var(--title-bar-transition-fast) ease;
-
-      &.disabled {
-        color: var(--text-color-subtle);
-      }
-
-      &.invisible {
-        display: none;
-      }
-
-      .menu-item-keystroke {
-        display: inline-flex;
-        align-items: center;
-        height: 100%;
-        white-space: nowrap;
-        margin-left: 24px;
-        color: var(--text-color-subtle);
-        font-size: var(--title-bar-menu-font-size);
-      }
-
-      &:hover:not(.disabled),
-      &.selected:not(.disabled) {
-        background-color: var(--background-color-highlight);
-      }
-
-      &:active:not(.disabled) {
-        background-color: var(--background-color-selected);
-      }
-
-      .menu-item-submenu {
-        position: absolute;
-      }
-
-      &.has-sub > .menu-item-keystroke:after {
-        content: "";
-        display: block;
-        width: 0;
-        height: 0;
-        border-top: 4px solid transparent;
-        border-bottom: 4px solid transparent;
-        border-left: 5px solid currentColor;
-        margin-left: 8px;
-        margin-right: -4px;
-        opacity: 0.7;
-      }
-
-      .menu-item-name {
-        white-space: nowrap;
-      }
-
-      &.menu-item-multipath {
-        height: auto;
-        padding-top: 4px;
-        padding-bottom: 4px;
-        align-items: flex-start;
-
-        .menu-item-path-line {
-          line-height: 20px;
-          white-space: nowrap;
-        }
-      }
-
-      &.bounce {
-        animation: item-bounce 0.15s ease;
-      }
-    }
-
-    .menu-item-submenu {
-      display: block;
-      visibility: hidden;
-      /* Shared menu box base (inline-expanded) */
-      min-width: var(--title-bar-menu-box-min-width);
-      background-color: var(--overlay-background-color);
-      cursor: default;
-      border: 1px solid var(--overlay-border-color);
-      border-radius: var(--title-bar-menu-box-radius);
-      box-shadow: var(--title-bar-menu-box-shadow);
-      padding: 6px 0;
-      font-family: "Segoe UI", var(--font-family);
-      font-size: var(--title-bar-menu-font-size);
-      font-weight: 400;
-      contain: layout style;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .menu-item.open > .menu-item-submenu {
-      visibility: visible;
-    }
-
-    /* Show .open highlight only when menu-box is not being hovered */
-    &:not(:hover) .menu-item.open {
-      background-color: var(--background-color-highlight);
-    }
 
     &.visible {
       visibility: visible;
