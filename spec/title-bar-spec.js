@@ -1,6 +1,7 @@
 const { Utils } = require("../lib/utils");
 const { ApplicationMenu } = require("../lib/app-menu");
 const { ControlTiles } = require("../lib/control-tiles");
+const { MenuItem } = require("../lib/item");
 const { MenuLabel } = require("../lib/label");
 const {
   calculateAvailableMenuWidth,
@@ -195,6 +196,56 @@ describe("Title Bar package", () => {
 
       expect(button.classList).toContain("title-bar-item");
       expect(inner.classList).not.toContain("title-bar-item");
+    });
+  });
+
+  describe("label rendering", () => {
+    it("underlines the mnemonic letter", () => {
+      const item = MenuItem.createMenuItem({ label: "&File", command: "example:noop" });
+      const name = item.getElement().querySelector(".menu-item-name");
+
+      expect(name.textContent).toBe("File");
+      expect(name.querySelector("u").textContent).toBe("F");
+      expect(item.getAltTrigger()).toBe("f");
+    });
+
+    // A `File > Reopen Project` label is a raw filesystem path, and `<` is a
+    // legal character in a directory name on macOS and linux. Rendered as
+    // markup it would run in a renderer that has Node integration.
+    it("renders a path label as text, markup and all", () => {
+      const projectPath = "/tmp/<img src=x onerror=boom>";
+      const item = MenuItem.createMenuItem({
+        label: projectPath,
+        command: "application:reopen-project",
+        commandDetail: { paths: [projectPath] },
+      });
+      const name = item.getElement().querySelector(".menu-item-name");
+
+      expect(name.textContent).toBe(projectPath);
+      expect(name.querySelector("img")).toBeNull();
+    });
+
+    // An `&` in a path names no accelerator -- it belongs to the directory's
+    // name, and stripping it renamed the project in the menu.
+    it("keeps an ampersand that came from a path", () => {
+      const projectPath = "/tmp/foo&bar";
+      const item = MenuItem.createMenuItem({
+        label: projectPath,
+        command: "application:reopen-project",
+        commandDetail: { paths: [projectPath] },
+      });
+
+      expect(item.getElement().querySelector(".menu-item-name").textContent).toBe(projectPath);
+      expect(item.getAltTrigger()).toBeUndefined();
+      expect(item.getElement().hasAttribute("alt-trigger")).toBe(false);
+    });
+
+    it("renders a top-level menu label the same way", () => {
+      const label = MenuLabel.createMenuLabel({ label: "&Edit", submenu: [] });
+
+      expect(label.getElement().querySelector("u").textContent).toBe("E");
+      expect(label.getElement().getAttribute("label")).toBe("Edit");
+      expect(label.getAltTrigger()).toBe("e");
     });
   });
 
