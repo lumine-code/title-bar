@@ -5,6 +5,7 @@ const { MenuItem } = require("../lib/item");
 const { MenuLabel } = require("../lib/label");
 const { MenuUpdater } = require("../lib/updater");
 const { Config } = require("../lib/types");
+const { ThemeManager } = require("../lib/theme");
 const {
   calculateAvailableMenuWidth,
   calculateVisibleLabelCount,
@@ -429,6 +430,22 @@ describe("Title Bar package", () => {
       expect(calculateAvailableMenuWidth({ left: 700, right: 1000 }, titleRect, 8, 8, true)).toBe(
         434,
       );
+    });
+
+    // Which edge the menu is anchored to is the theme's to say. Reading it back
+    // off the bar's class list meant the measurement named one theme and the
+    // stylesheet named another, with nothing to keep the two in step.
+    it("takes the anchored edge from the control theme", () => {
+      const themeManager = new ThemeManager({ getElement: () => document.createElement("div") });
+
+      themeManager.setWindowControlTheme("Windows 11");
+      expect(themeManager.isMenuOnTrailingEdge()).toBe(false);
+
+      themeManager.setWindowControlTheme("GNOME");
+      expect(themeManager.isMenuOnTrailingEdge()).toBe(false);
+
+      themeManager.setWindowControlTheme("macOS Tahoe");
+      expect(themeManager.isMenuOnTrailingEdge()).toBe(true);
     });
 
     it("moves trailing menus into an overflow submenu and restores them", () => {
