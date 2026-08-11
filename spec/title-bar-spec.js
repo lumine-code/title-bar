@@ -103,6 +103,17 @@ describe("Title Bar package", () => {
     await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
 
     expect(workspaceElement.querySelector(".title-bar")).toBeNull();
+    expect(workspaceElement.querySelector(".app-menu-submenu-portal")).toBeNull();
+  });
+
+  // The header panel is added from the first `observeActivePane` callback,
+  // gated on a flag that outlived the view it guarded -- so the bar came back
+  // without one and never reached the DOM again.
+  it("puts the title bar back when the package is activated again", async () => {
+    await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
+    await lumine.packages.activatePackage("title-bar");
+
+    expect(workspaceElement.querySelectorAll(".title-bar").length).toBe(1);
   });
 
   // The strip is inset from the window top, and every interactive item in it
@@ -181,6 +192,40 @@ describe("Title Bar package", () => {
       tile.destroy();
       expect(first.classList).not.toContain("title-bar-item");
       expect(second.classList).not.toContain("title-bar-item");
+    });
+
+    // Destroying the bar destroys every tile it holds, so a package's own
+    // teardown routinely runs second. An unguarded splice(-1, 1) evicted the
+    // last tile in the collection -- some other package's -- instead.
+    it("leaves the other tiles alone when one is destroyed twice", () => {
+      const first = document.createElement("button");
+      const second = document.createElement("button");
+      const firstTile = controlTiles.addItem({ item: first, priority: 1 });
+      controlTiles.addItem({ item: second, priority: 2 });
+
+      firstTile.destroy();
+      firstTile.destroy();
+
+      const remaining = controlTiles.getTiles();
+      expect(remaining.length).toBe(1);
+      expect(remaining[0].getItem()).toBe(second);
+      expect(second.classList).toContain("title-bar-item");
+    });
+
+    it("destroys every tile it holds", () => {
+      const button = document.createElement("button");
+      const tile = controlTiles.addItem({ item: button, priority: 10 });
+
+      controlTiles.destroy();
+
+      expect(controlTiles.getTiles().length).toBe(0);
+      expect(button.classList).not.toContain("title-bar-item");
+      expect(button.parentElement).toBeNull();
+
+      // The package's own disposable still runs afterwards, and must not throw
+      // or take anything else with it.
+      tile.destroy();
+      expect(controlTiles.getTiles().length).toBe(0);
     });
 
     // A tile is the element the bar hosts, never a block nested inside one:
