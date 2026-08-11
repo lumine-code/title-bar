@@ -114,12 +114,17 @@ describe("Title Bar package", () => {
   it("draws nothing when the window keeps its native title bar", async () => {
     await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
     lumine.config.set("core.titleBar", "native");
-    const pack = await lumine.packages.activatePackage("title-bar");
 
-    expect(workspaceElement.querySelector(".title-bar")).toBeNull();
-    expect(pack.mainModule.provideTitleBar()).toBeUndefined();
+    try {
+      const pack = await lumine.packages.activatePackage("title-bar");
 
-    lumine.config.set("core.titleBar", "custom");
+      expect(workspaceElement.querySelector(".title-bar")).toBeNull();
+      expect(pack.mainModule.provideTitleBar()).toBeUndefined();
+    } finally {
+      // Every following spec activates the package again, so leaving the
+      // setting behind would take the whole file down with it.
+      lumine.config.set("core.titleBar", "custom");
+    }
   });
 
   // The header panel is added from the first `observeActivePane` callback,
