@@ -108,6 +108,20 @@ describe("Title Bar package", () => {
     expect(document.querySelector(".app-menu-submenu-portal")).toBeNull();
   });
 
+  // The operating system draws the bar in that configuration, and a second one
+  // below it is not something anybody asked for. The service resolves to
+  // undefined then, which is the case its contract tells consumers to guard.
+  it("draws nothing when the window keeps its native title bar", async () => {
+    await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
+    lumine.config.set("core.titleBar", "native");
+    const pack = await lumine.packages.activatePackage("title-bar");
+
+    expect(workspaceElement.querySelector(".title-bar")).toBeNull();
+    expect(pack.mainModule.provideTitleBar()).toBeUndefined();
+
+    lumine.config.set("core.titleBar", "custom");
+  });
+
   // The header panel is added from the first `observeActivePane` callback,
   // gated on a flag that outlived the view it guarded -- so the bar came back
   // without one and never reached the DOM again.

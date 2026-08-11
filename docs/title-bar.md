@@ -87,7 +87,7 @@ The strip is a drag region, and the bar exempts every tile from that automatical
 
 ## Behavior
 
-The service is `undefined` when the title bar is not rendered — on platforms or configurations using the native window frame, `provideTitleBar` resolves through an optional chain and yields nothing. **Guard your consumer**: it may be handed `undefined` rather than never being called.
+The service is `undefined` when the title bar is not rendered. With `core.titleBar` set to `native` the operating system draws the bar and this package draws nothing, so `provideTitleBar` resolves through an optional chain and yields nothing. **Guard your consumer**: it may be handed `undefined` rather than never being called.
 
 Tiles are inserted in priority order at the moment they are added, so a later tile still lands in the right place.
 
@@ -97,7 +97,7 @@ There are few consumers, so no priority band scheme has been established. Keep n
 
 Keep the returned tile and `destroy()` it. As with the status bar, removing only the element leaves the tile in the ordered collection and the next insertion positioned against a detached node.
 
-Destroying the title bar destroys every tile it holds, so a tile disposed after that is disposed twice — make your own teardown tolerate it.
+Destroying the title bar destroys every tile it holds, so a tile disposed after that is disposed twice. That is expected and the second call does nothing — your teardown does not have to guard against it.
 
 ## Versioning
 

@@ -4,7 +4,7 @@ Theme-aware custom title bar with integrated menu.
 
 ## Features
 
-- **Custom title bar**: replaces the native title bar for Lumine's frameless windows.
+- **Custom title bar**: replaces the native title bar on a frameless window, and stands aside when `core.titleBar` is set to `native`.
 - **Control themes**: offers Windows 11, macOS Tahoe, and GNOME window controls, with default resolving to the platform theme.
 - **Theme-aware colors**: derives colors from the Lumine UI variables.
 - **Keyboard menu**: navigates the menu with alt mnemonics.
@@ -32,8 +32,16 @@ Restyle the title bar by adding CSS to your `styles.css`. For example, to give i
 
 ```css
 .title-bar {
-  --title-bar-height: 40px;
   background-color: #1f2430;
+}
+```
+
+The custom properties the package reads are declared on `:root`, so override them there rather than on `.title-bar` — the context menu and the submenu portals are children of `<body>` and never see a value set on the bar:
+
+```css
+:root {
+  --title-bar-height: 40px;
+  --title-bar-menu-box-radius: 0px;
 }
 ```
 

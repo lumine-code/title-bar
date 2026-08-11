@@ -5,10 +5,10 @@
   "description": "Theme-aware custom title bar with integrated menu.",
   "keywords": [
     "frameless",
-    "menu",
+    "menubar",
     "window-controls",
-    "custom",
-    "menubar"
+    "mnemonics",
+    "context-menu"
   ],
   "repository": "https://github.com/lumine-code/title-bar",
   "bugs": {
@@ -26,6 +26,10 @@
   "engines": {
     "lumine": "^1.0.0"
   },
+  "backgroundTips": [
+    "{% if keys['title-bar:focus-menu'] %}You can put the keyboard into the application menu with {{ 'title-bar:focus-menu' | keystroke }}{% else %}You can put the keyboard into the application menu by tapping Alt, then reach any item by its underlined letter.{% endif %}",
+    "You can right-click anywhere for a context menu drawn and themed like the rest of the editor rather than by the operating system."
+  ],
   "scripts": {
     "test": "lumine --test spec",
     "lint": "eslint . --max-warnings 0",
