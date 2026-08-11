@@ -3,6 +3,8 @@ const { ApplicationMenu } = require("../lib/app-menu");
 const { ControlTiles } = require("../lib/control-tiles");
 const { MenuItem } = require("../lib/item");
 const { MenuLabel } = require("../lib/label");
+const { MenuUpdater } = require("../lib/updater");
+const { Config } = require("../lib/types");
 const {
   calculateAvailableMenuWidth,
   calculateVisibleLabelCount,
@@ -244,6 +246,44 @@ describe("Title Bar package", () => {
     });
   });
 
+  describe("menu template", () => {
+    let originalTemplate;
+
+    beforeEach(() => {
+      originalTemplate = lumine.menu.template;
+    });
+
+    afterEach(() => {
+      lumine.menu.template = originalTemplate;
+    });
+
+    // The mnemonic marker is written into the win32 and linux menu files only;
+    // darwin's say "Packages" plainly, so matching the raw label left the
+    // submenu unsorted on one platform out of three.
+    it("sorts the Packages submenu whether or not its label carries a mnemonic", () => {
+      for (const label of ["&Packages", "Packages"]) {
+        lumine.menu.template = [
+          {
+            label,
+            submenu: [{ label: "Zebra" }, { label: "alpha" }, { label: "Mike" }],
+          },
+        ];
+
+        const [packages] = MenuUpdater.getTemplate();
+        expect(packages.submenu.map((item) => item.label)).toEqual(["alpha", "Mike", "Zebra"]);
+      }
+    });
+
+    it("leaves every other menu in the order it was given", () => {
+      lumine.menu.template = [
+        { label: "&File", submenu: [{ label: "Zebra" }, { label: "alpha" }] },
+      ];
+
+      const [file] = MenuUpdater.getTemplate();
+      expect(file.submenu.map((item) => item.label)).toEqual(["Zebra", "alpha"]);
+    });
+  });
+
   describe("label rendering", () => {
     it("underlines the mnemonic letter", () => {
       const item = MenuItem.createMenuItem({ label: "&File", command: "example:noop" });
@@ -311,7 +351,12 @@ describe("Title Bar package", () => {
   describe("responsive application menu", () => {
     let appMenu;
 
+    let configState;
+
     const parent = {
+      getConfigState() {
+        return configState;
+      },
       isMenuBarVisible() {
         return true;
       },
@@ -320,6 +365,10 @@ describe("Title Bar package", () => {
       },
       setMenuBarVisible() {},
     };
+
+    beforeEach(() => {
+      configState = new Config();
+    });
 
     const template = [
       {
@@ -448,7 +497,7 @@ describe("Title Bar package", () => {
       const altUp = () => ({ key: "Alt", stopPropagation() {}, preventDefault() {} });
 
       beforeEach(() => {
-        lumine.config.set("title-bar.altGivesFocus", true);
+        configState.altGivesFocus = true;
         // Alt-wheel amplification enabled unless a test overrides it.
         lumine.config.set("editor.altWheelMultiplier", 7.5);
       });
