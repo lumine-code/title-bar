@@ -13,7 +13,7 @@ Theme-aware custom title bar with integrated menu.
 
 ## Installation
 
-To install `title-bar` search for _title-bar_ in the Install pane of the Lumine settings or run `lumine --install lumine-code/title-bar`.
+To install `title-bar` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/title-bar`.
 
 ## Commands
 
@@ -24,7 +24,7 @@ Commands available in `lumine-workspace`:
 
 ## Services
 
-- **[title-bar](docs/title-bar.md)** (`1.0.0`): provided to let other packages add control tiles to the title bar near the window buttons.
+- [`title-bar`](docs/title-bar.md): provided to let other packages add control tiles to the title bar near the window buttons.
 
 ## Customization
 
