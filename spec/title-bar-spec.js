@@ -354,6 +354,62 @@ describe("Title Bar package", () => {
     });
   });
 
+  describe("keystroke resolution", () => {
+    let keymaps, parent, child;
+
+    beforeEach(() => {
+      parent = document.createElement("div");
+      parent.classList.add("keystroke-parent");
+      child = document.createElement("div");
+      child.classList.add("keystroke-child");
+      parent.appendChild(child);
+      document.body.appendChild(parent);
+
+      keymaps = lumine.keymaps.add("title-bar-spec", {
+        ".keystroke-child": { "ctrl-a": "test:scoped-command" },
+      });
+    });
+
+    afterEach(() => {
+      keymaps.dispose();
+      parent.remove();
+    });
+
+    it("shows a binding that applies at the right-clicked element", () => {
+      const item = MenuItem.createContextMenuItem(
+        { label: "Scoped", command: "test:scoped-command" },
+        child,
+      );
+      item.ensureKeystroke();
+
+      expect(item.getElement().querySelector(".menu-item-keystroke").textContent).toBe(
+        Utils.formatKeystroke("ctrl-a"),
+      );
+    });
+
+    it("shows nothing when the binding does not reach the right-clicked element", () => {
+      // The command dispatches at the element that was right-clicked, so a
+      // binding scoped to a descendant of it would not fire and must not be
+      // advertised. Resolving with no target could not tell the difference.
+      const item = MenuItem.createContextMenuItem(
+        { label: "Scoped", command: "test:scoped-command" },
+        parent,
+      );
+      item.ensureKeystroke();
+
+      expect(item.getElement().querySelector(".menu-item-keystroke").textContent).toBe("");
+    });
+
+    it("still resolves for a menu-bar item, which has no element to resolve against", () => {
+      const item = MenuItem.createMenuItem({ label: "Scoped", command: "test:scoped-command" });
+      item.ensureKeystroke();
+
+      expect(item.getElement().querySelector(".menu-item-keystroke").textContent).toBe(
+        Utils.formatKeystroke("ctrl-a"),
+      );
+    });
+  });
+
   describe("keystroke formatting", () => {
     it("formats modifiers, shifted symbols, and multi-stroke bindings", () => {
       if (process.platform === "darwin") {
