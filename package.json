@@ -73,6 +73,11 @@
       "versions": {
         "1.0.0": "provideTitleBar"
       }
+    },
+    "title-bar.surface": {
+      "versions": {
+        "1.0.0": "provideSurfaceTitleBar"
+      }
     }
   },
   "dependencies": {

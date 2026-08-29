@@ -630,6 +630,21 @@
   }
 }
 
+/* Detached surfaces mount the same chrome directly at the top of their
+   viewport, rather than in the primary workspace's inset header panel. */
+.title-bar.surface-title-bar {
+  height: var(--title-bar-height);
+  min-width: 0;
+  margin-top: 0;
+
+  .title-bar-item:focus-visible,
+  .app-icon[role="button"]:focus-visible,
+  .window-buttons button:focus-visible {
+    outline: 1px solid var(--text-color-info);
+    outline-offset: -2px;
+  }
+}
+
 @keyframes item-bounce {
   0% {
     transform: scale(1);
