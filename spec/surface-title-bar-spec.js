@@ -53,6 +53,7 @@ describe("title-bar.surface service", () => {
     frames,
     handles,
     controllers,
+    styleMounts,
     contextMenuItems,
     originalShowForEvent,
     originalShowForSurfaceEvent;
@@ -68,12 +69,14 @@ describe("title-bar.surface service", () => {
     frames = [];
     handles = [];
     controllers = [];
+    styleMounts = [];
   });
 
   afterEach(async () => {
     contextMenuItems?.dispose();
     for (const handle of handles) handle.destroy();
     for (const item of controllers) item.destroy();
+    for (const mount of styleMounts) mount.dispose();
     for (const frame of frames) frame.remove();
     lumine.config.set("title-bar.controlTheme", "Default");
     await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
@@ -84,6 +87,7 @@ describe("title-bar.surface service", () => {
     const frame = document.createElement("iframe");
     jasmine.attachToDOM(frame);
     frames.push(frame);
+    styleMounts.push(lumine.styles.mount(frame.contentDocument));
     const windowController = controller();
     controllers.push(windowController);
     const handle = factory.create({
@@ -213,6 +217,34 @@ describe("title-bar.surface service", () => {
     expect(document.querySelectorAll(".app-menu-submenu-portal").length).toBe(portalCount);
   });
 
+  it("centers icon-only actions and renders chrome labels as realm-local tooltips", () => {
+    const surface = createSurface("Tooltip surface", () => {});
+    const { contentDocument, contentWindow } = surface.frame;
+    const action = surface.handle.element.querySelector('[data-action="attach"]');
+    const appIcon = surface.handle.element.querySelector(".app-icon");
+    const minimize = surface.handle.element.querySelector(".btn-minimize");
+
+    const actionStyle = contentWindow.getComputedStyle(action);
+    const iconStyle = contentWindow.getComputedStyle(action, "::before");
+    expect(parseFloat(actionStyle.paddingLeft)).toBeGreaterThan(0);
+    expect(actionStyle.paddingLeft).toBe(actionStyle.paddingRight);
+    expect(iconStyle.marginRight).toBe("0px");
+
+    for (const element of [action, appIcon, minimize]) {
+      expect(element.hasAttribute("title")).toBe(false);
+      expect(lumine.tooltips.findTooltips(element).length).toBe(1);
+    }
+
+    const [tooltip] = lumine.tooltips.findTooltips(action);
+    tooltip.show();
+    const tooltipElement = contentDocument.querySelector(".tooltip");
+    expect(tooltipElement).not.toBeNull();
+    expect(tooltipElement.ownerDocument).toBe(contentDocument);
+    expect(tooltipElement.querySelector(".tooltip-inner").textContent).toBe(
+      "Attach Tooltip surface",
+    );
+  });
+
   it("tears down handles and the factory idempotently", () => {
     const action = jasmine.createSpy("action");
     const surface = createSurface("Disposable", action);
@@ -224,6 +256,7 @@ describe("title-bar.surface service", () => {
     surface.handle.setTitle("Ignored");
 
     expect(action).not.toHaveBeenCalled();
+    expect(lumine.tooltips.findTooltips(actionElement)).toEqual([]);
     expect(surface.handle.element.isConnected).toBe(false);
     expect(factory.instances.size).toBe(0);
     expect(() => factory.destroy()).not.toThrow();

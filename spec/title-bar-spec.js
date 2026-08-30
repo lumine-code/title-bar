@@ -160,6 +160,9 @@ describe("Title Bar package", () => {
       for (const subscription of commandSubscriptions) subscription.dispose();
       contextMenuItems.dispose();
       for (const frame of frames) frame.remove();
+      // Closing a context menu deliberately restores focus in its source
+      // realm. Return it to the surviving spec document after that realm goes.
+      document.body.focus();
     });
 
     function createSurfaceTarget() {
@@ -168,7 +171,6 @@ describe("Title Bar package", () => {
       frames.push(frame);
       const target = frame.contentDocument.createElement("div");
       target.classList.add("title-bar-surface-context-target");
-      target.tabIndex = 0;
       frame.contentDocument.body.appendChild(target);
       commandSubscriptions.push(lumine.commands.attach(frame.contentWindow));
       return { frame, target };
