@@ -65,6 +65,8 @@ type SurfaceWindowState = {
 
 Each action is rendered as a realm-local `<title-bar-tile>` with button semantics, an accessible name, `tabIndex=0`, click activation and Enter/Space keyboard activation. Its `priority` follows the existing `title-bar` control-tile ordering.
 
+When `title-bar.customContextMenus` is enabled, the package also renders context menus for secondary surfaces in the right-clicked target's own `Document`. This remains active when the primary window uses its native title bar: the primary chrome and the package-wide context-menu renderer have independent lifecycles.
+
 `requestClose` is preferred over `close` so a detached window can perform its renderer-confirmed close handshake. The maximize button and an unclaimed title-bar double-click use the same controller; on macOS `getDoubleClickAction` may select maximize, minimize or no action. Calling `destroy()` more than once is safe and removes all actions, controller subscriptions and DOM owned by the handle. Destroying the factory destroys every outstanding handle, and a later handle teardown remains safe.
 
 The factory exists even when `core.titleBar` is `native`; that setting controls only the primary workspace bar.

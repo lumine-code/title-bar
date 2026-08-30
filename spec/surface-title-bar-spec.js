@@ -48,11 +48,21 @@ function controller() {
 }
 
 describe("title-bar.surface service", () => {
-  let pack, factory, frames, handles, controllers;
+  let pack,
+    factory,
+    frames,
+    handles,
+    controllers,
+    contextMenuItems,
+    originalShowForEvent,
+    originalShowForSurfaceEvent;
 
   beforeEach(async () => {
     await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
+    originalShowForEvent = lumine.contextMenu.showForEvent;
+    originalShowForSurfaceEvent = lumine.contextMenu.showForSurfaceEvent;
     lumine.config.set("core.titleBar", "native");
+    lumine.config.set("title-bar.customContextMenus", true);
     pack = await lumine.packages.activatePackage("title-bar");
     factory = pack.mainModule.provideSurfaceTitleBar();
     frames = [];
@@ -61,6 +71,7 @@ describe("title-bar.surface service", () => {
   });
 
   afterEach(async () => {
+    contextMenuItems?.dispose();
     for (const handle of handles) handle.destroy();
     for (const item of controllers) item.destroy();
     for (const frame of frames) frame.remove();
@@ -99,6 +110,38 @@ describe("title-bar.surface service", () => {
     expect(pack.mainModule.provideTitleBar()).toBeUndefined();
     expect(factory).toBeDefined();
     expect(typeof factory.create).toBe("function");
+  });
+
+  it("keeps custom context menus active in surfaces with a native primary title bar", () => {
+    contextMenuItems = lumine.contextMenu.add({
+      ".surface-title-bar-action": [
+        { label: "Surface action", command: "title-bar-spec:surface-action" },
+      ],
+    });
+    const surface = createSurface("Native primary", () => {});
+    const target = surface.handle.element.querySelector('[data-action="attach"]');
+    const showNativeMenu = jasmine.createSpy("showNativeMenu");
+
+    lumine.contextMenu.showForSurfaceEvent(
+      { target, clientX: 12, clientY: 24 },
+      { windowService: { showContextMenu: showNativeMenu } },
+    );
+
+    const menu = surface.frame.contentDocument.querySelector(".context-menu-container");
+    expect(menu).not.toBeNull();
+    expect(menu.ownerDocument).toBe(surface.frame.contentDocument);
+    expect(document.querySelector(".context-menu-container")).toBeNull();
+    expect(showNativeMenu).not.toHaveBeenCalled();
+  });
+
+  it("restores both native context-menu routes when the package deactivates", async () => {
+    expect(lumine.contextMenu.showForEvent).not.toBe(originalShowForEvent);
+    expect(lumine.contextMenu.showForSurfaceEvent).not.toBe(originalShowForSurfaceEvent);
+
+    await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
+
+    expect(lumine.contextMenu.showForEvent).toBe(originalShowForEvent);
+    expect(lumine.contextMenu.showForSurfaceEvent).toBe(originalShowForSurfaceEvent);
   });
 
   it("creates two independent realm-local chrome instances without primary menu side effects", async () => {
