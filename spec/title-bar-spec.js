@@ -1,12 +1,15 @@
 const { Utils } = require("../lib/utils");
-const { ApplicationMenu } = require("../lib/app-menu");
+const { ApplicationMenu, shouldUseGlobalApplicationMenu } = require("../lib/app-menu");
 const { ControlTiles } = require("../lib/control-tiles");
+const { ContextMenuInterceptor } = require("../lib/context-menu-interceptor");
 const { MenuItem } = require("../lib/item");
 const { MenuLabel } = require("../lib/label");
 const { MenuUpdater } = require("../lib/updater");
 const { Config } = require("../lib/types");
 const { ThemeManager } = require("../lib/theme");
+const manifest = require("../package.json");
 const {
+  TitleBarView,
   calculateAvailableMenuWidth,
   calculateVisibleLabelCount,
   resolveLaunchMode,
@@ -24,6 +27,13 @@ describe("Title Bar package", () => {
 
   it("adds a custom title bar to the workspace header", () => {
     expect(workspaceElement.querySelectorAll(".title-bar").length).toBe(1);
+  });
+
+  it("exposes the single custom menu setting without the preproduction alias", () => {
+    expect(manifest.configSchema.customMenus).toEqual(
+      jasmine.objectContaining({ title: "Custom Menus", type: "boolean", default: true }),
+    );
+    expect(manifest.configSchema.customContextMenus).toBeUndefined();
   });
 
   it("adds window controls", () => {
@@ -138,6 +148,112 @@ describe("Title Bar package", () => {
     expect(workspaceElement.querySelectorAll(".title-bar").length).toBe(1);
   });
 
+  it("switches application and context menu backends live from one setting", async () => {
+    const customContextMenu = lumine.contextMenu.showForEvent;
+    const appMenuElement = workspaceElement.querySelector(".title-bar .app-menu");
+    const firstLabel = appMenuElement.querySelector(".menu-label");
+    spyOn(lumine.window, "showApplicationMenuPopup").and.resolveTo(true);
+    spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+
+    try {
+      lumine.config.set("title-bar.customMenus", false);
+
+      const appMenu = window.titleBar.titleBarView.getApplicationMenu();
+      appMenu.setOverflowStartIndex(appMenu.getLabels().length);
+      appMenu.getLabels().forEach((label, index) => {
+        spyOn(label.getElement(), "getBoundingClientRect").and.returnValue({
+          left: index * 40,
+          top: 0,
+          right: (index + 1) * 40,
+          bottom: 24,
+        });
+      });
+
+      expect(lumine.contextMenu.showForEvent).not.toBe(customContextMenu);
+      expect(appMenuElement.classList.contains("native-global-menu")).toBe(
+        process.platform === "darwin",
+      );
+      firstLabel.click();
+      await flushMicrotasks();
+      if (process.platform === "darwin") {
+        expect(lumine.window.showApplicationMenuPopup).not.toHaveBeenCalled();
+      } else {
+        expect(lumine.window.showApplicationMenuPopup).toHaveBeenCalled();
+      }
+
+      const nativeContextMenu = lumine.contextMenu.showForEvent;
+      lumine.config.set("title-bar.customMenus", true);
+      expect(lumine.contextMenu.showForEvent).not.toBe(nativeContextMenu);
+      expect(appMenuElement.classList).not.toContain("native-global-menu");
+    } finally {
+      lumine.config.set("title-bar.customMenus", true);
+    }
+  });
+
+  it("closes native application popups on resize, menu update, and deactivate", async () => {
+    if (process.platform === "darwin") return;
+    spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+    const closePopup = spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+
+    try {
+      lumine.config.set("title-bar.customMenus", false);
+      const view = window.titleBar.titleBarView;
+      const appMenu = view.getApplicationMenu();
+      appMenu.setOverflowStartIndex(appMenu.getLabels().length);
+      appMenu.getLabels().forEach((label, index) => {
+        spyOn(label.getElement(), "getBoundingClientRect").and.returnValue({
+          left: index * 40,
+          top: 0,
+          right: (index + 1) * 40,
+          bottom: 24,
+        });
+      });
+      const firstLabel = appMenu.getLabels()[0];
+
+      firstLabel.getElement().click();
+      await flushMicrotasks();
+      view.handleWindowResize();
+      await flushMicrotasks();
+      expect(closePopup.calls.count()).toBe(1);
+
+      firstLabel.getElement().click();
+      await flushMicrotasks();
+      view.menuUpdateWrapper();
+      await flushMicrotasks();
+      expect(closePopup.calls.count()).toBe(2);
+
+      firstLabel.getElement().click();
+      await flushMicrotasks();
+      await Promise.resolve(lumine.packages.deactivatePackage("title-bar"));
+      await flushMicrotasks();
+      expect(closePopup.calls.count()).toBe(3);
+    } finally {
+      lumine.config.set("title-bar.customMenus", true);
+    }
+  });
+
+  it("does not overwrite context-menu integrations installed after its wrappers", () => {
+    const originalShowForEvent = lumine.contextMenu.showForEvent;
+    const originalShowForSurfaceEvent = lumine.contextMenu.showForSurfaceEvent;
+    const interceptor = new ContextMenuInterceptor();
+    const laterShowForEvent = () => {};
+    const laterShowForSurfaceEvent = () => {};
+
+    try {
+      interceptor.activate();
+      lumine.contextMenu.showForEvent = laterShowForEvent;
+      lumine.contextMenu.showForSurfaceEvent = laterShowForSurfaceEvent;
+      interceptor.deactivate();
+
+      expect(lumine.contextMenu.showForEvent).toBe(laterShowForEvent);
+      expect(lumine.contextMenu.showForSurfaceEvent).toBe(laterShowForSurfaceEvent);
+    } finally {
+      interceptor.deactivate();
+      lumine.contextMenu.showForEvent = originalShowForEvent;
+      lumine.contextMenu.showForSurfaceEvent = originalShowForSurfaceEvent;
+    }
+  });
+
   describe("custom context menus in secondary surfaces", () => {
     let frames, contextMenuItems, commandSubscriptions;
 
@@ -242,6 +358,32 @@ describe("Title Bar package", () => {
         expect(menu.ownerDocument).toBe(document);
       } finally {
         target.remove();
+      }
+    });
+
+    it("restores native context menus in primary and secondary surfaces", async () => {
+      const primary = document.createElement("div");
+      primary.classList.add("title-bar-surface-context-target");
+      jasmine.attachToDOM(primary);
+      const secondary = createSurfaceTarget();
+      const primaryNativeMenu = spyOn(
+        lumine.contextMenu.applicationDelegate,
+        "showContextMenu",
+      ).and.resolveTo();
+      const surfaceNativeMenu = jasmine.createSpy("surfaceNativeMenu").and.resolveTo();
+
+      try {
+        lumine.config.set("title-bar.customMenus", false);
+        await lumine.contextMenu.showForEvent({ target: primary, clientX: 8, clientY: 16 });
+        await openSurfaceContextMenu(secondary.target, surfaceNativeMenu);
+
+        expect(primaryNativeMenu).toHaveBeenCalled();
+        expect(surfaceNativeMenu).toHaveBeenCalled();
+        expect(document.querySelector(".context-menu-container")).toBeNull();
+        expect(secondary.frame.contentDocument.querySelector(".context-menu-container")).toBeNull();
+      } finally {
+        lumine.config.set("title-bar.customMenus", true);
+        primary.remove();
       }
     });
   });
@@ -410,6 +552,37 @@ describe("Title Bar package", () => {
       const [file] = MenuUpdater.getTemplate();
       expect(file.submenu.map((item) => item.label)).toEqual(["Zebra", "alpha"]);
     });
+
+    it("replaces a top-level label when its stable ID changes", () => {
+      const label = MenuLabel.createMenuLabel({ id: "old", label: "&File", submenu: [] });
+
+      expect(MenuUpdater.equals(label, { id: "old", label: "&File" })).toBe(true);
+      expect(MenuUpdater.equals(label, { id: "new", label: "&File" })).toBe(false);
+      expect(label.getId()).toBe("old");
+    });
+  });
+
+  it("leaves a later menu-update wrapper installed during teardown", () => {
+    const hadOwnMenuUpdate = Object.hasOwn(lumine.menu, "update");
+    const originalMenuUpdate = lumine.menu.update;
+    const view = Object.create(TitleBarView.prototype);
+    const ownedWrapper = () => {};
+    const laterWrapper = () => {};
+    Object.assign(view, {
+      hadOwnMenuUpdate,
+      originalMenuUpdateFn: originalMenuUpdate,
+      menuUpdateWrapper: ownedWrapper,
+      menuUpdateAttached: true,
+    });
+
+    try {
+      lumine.menu.update = laterWrapper;
+      view.detachMenuUpdater();
+      expect(lumine.menu.update).toBe(laterWrapper);
+    } finally {
+      if (hadOwnMenuUpdate) lumine.menu.update = originalMenuUpdate;
+      else delete lumine.menu.update;
+    }
   });
 
   describe("label rendering", () => {
@@ -536,10 +709,15 @@ describe("Title Bar package", () => {
     let appMenu;
 
     let configState;
+    let platform;
+    let setMenuBarVisible;
 
     const parent = {
       getConfigState() {
         return configState;
+      },
+      getPlatform() {
+        return platform;
       },
       isMenuBarVisible() {
         return true;
@@ -547,19 +725,54 @@ describe("Title Bar package", () => {
       isTitleBarVisible() {
         return true;
       },
-      setMenuBarVisible() {},
+      setMenuBarVisible(visible) {
+        setMenuBarVisible(visible);
+      },
     };
 
     beforeEach(() => {
       configState = new Config();
+      platform = "win32";
+      setMenuBarVisible = jasmine.createSpy("setMenuBarVisible");
     });
+
+    function setNativeMenuBounds(menu, overrides = {}) {
+      const defaults = {
+        File: { left: 10.2, top: 4.8, right: 48.1, bottom: 25.2 },
+        Edit: { left: 48.1, top: 4.8, right: 86.3, bottom: 25.2 },
+        Help: { left: 86.3, top: 4.8, right: 128.4, bottom: 25.2 },
+        overflow: { left: 48.1, top: 4.8, right: 76.2, bottom: 25.2 },
+      };
+      [...menu.getLabels(), menu.overflowLabel].forEach((label) => {
+        const key = label === menu.overflowLabel ? "overflow" : label.getId();
+        spyOn(label.getElement(), "getBoundingClientRect").and.returnValue(
+          overrides[key] ?? defaults[key],
+        );
+      });
+    }
+
+    function requestWithoutHoverMetadata(request) {
+      const {
+        hoverTargets: _hoverTargets,
+        activeHoverTarget: _activeHoverTarget,
+        ...base
+      } = request;
+      return base;
+    }
+
+    function switchEventTarget(target) {
+      const { bounds: _bounds, ...eventTarget } = target;
+      return eventTarget;
+    }
 
     const template = [
       {
+        id: "File",
         label: "&File",
         submenu: [{ label: "&New", command: "application:new-file" }],
       },
       {
+        id: "Edit",
         label: "&Edit",
         submenu: [
           { label: "&Undo", command: "core:undo" },
@@ -568,6 +781,7 @@ describe("Title Bar package", () => {
         ],
       },
       {
+        id: "Help",
         label: "&Help",
         submenu: [{ label: "&About", command: "application:about" }],
       },
@@ -635,6 +849,440 @@ describe("Title Bar package", () => {
         "&Help",
       ]);
       expect(appMenu.overflowLabel.getSubmenu().length).toBe(0);
+    });
+
+    it("keeps mouse and keyboard paths on the HTML backend when custom menus are enabled", () => {
+      spyOn(lumine.window, "showApplicationMenuPopup");
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      const file = appMenu.getLabels()[0];
+
+      file.getElement().click();
+      expect(file.isOpen()).toBe(true);
+      appMenu.close();
+
+      for (const key of ["Enter", "ArrowDown"]) {
+        appMenu.focusFirstLabel();
+        appMenu.onKeyDown({
+          key,
+          repeat: false,
+          stopPropagation() {},
+          preventDefault() {},
+        });
+        expect(file.isOpen()).toBe(true);
+        expect(file.getSubmenu().getSelected()?.getLabelText()).toBe("&New");
+        appMenu.close();
+      }
+
+      expect(lumine.window.showApplicationMenuPopup).not.toHaveBeenCalled();
+    });
+
+    it("opens a top-level native submenu from a mouse click", async () => {
+      configState.customMenus = false;
+      configState.autoHide = true;
+      let closePopup;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.callFake(
+        () =>
+          new Promise((resolve) => {
+            closePopup = resolve;
+          }),
+      );
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      const file = appMenu.getLabels()[0];
+      setNativeMenuBounds(appMenu, {
+        File: { left: 12.4, top: 5.8, right: 52.1, bottom: 34.6 },
+      });
+
+      file.getElement().click();
+      await flushMicrotasks();
+
+      const request = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      expect(requestWithoutHoverMetadata(request)).toEqual({
+        kind: "submenu",
+        id: "File",
+        x: 12,
+        y: 35,
+        sourceType: "mouse",
+      });
+      expect(request.hoverTargets.map(({ key: _key, ...target }) => target)).toEqual([
+        { kind: "submenu", id: "File", bounds: { x: 12, y: 5, width: 41, height: 30 } },
+        { kind: "submenu", id: "Edit", bounds: { x: 48, y: 4, width: 39, height: 22 } },
+        { kind: "submenu", id: "Help", bounds: { x: 86, y: 4, width: 43, height: 22 } },
+      ]);
+      expect(request.activeHoverTarget).toBe(request.hoverTargets[0].key);
+      expect(file.isFocused()).toBe(true);
+      expect(file.isOpen()).toBe(false);
+
+      closePopup(true);
+      await flushMicrotasks();
+      expect(file.isFocused()).toBe(false);
+      expect(setMenuBarVisible).toHaveBeenCalledWith(false);
+    });
+
+    it("opens focused native menus from Enter and ArrowDown as keyboard requests", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.resolveTo(true);
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      setNativeMenuBounds(appMenu, {
+        File: { left: 2, top: 1, right: 42, bottom: 8 },
+      });
+
+      for (const key of ["Enter", "ArrowDown"]) {
+        appMenu.focusFirstLabel();
+        appMenu.onKeyDown({
+          key,
+          repeat: false,
+          stopPropagation() {},
+          preventDefault() {},
+        });
+        await flushMicrotasks();
+      }
+
+      expect(lumine.window.showApplicationMenuPopup.calls.count()).toBe(2);
+      expect(
+        lumine.window.showApplicationMenuPopup.calls
+          .allArgs()
+          .map(([request]) => requestWithoutHoverMetadata(request)),
+      ).toEqual([
+        { kind: "submenu", id: "File", x: 2, y: 8, sourceType: "keyboard" },
+        { kind: "submenu", id: "File", x: 2, y: 8, sourceType: "keyboard" },
+      ]);
+    });
+
+    it("opens the native overflow popup with canonical trailing IDs", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.resolveTo(true);
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      appMenu.setOverflowStartIndex(1);
+      setNativeMenuBounds(appMenu, {
+        overflow: { left: 40, top: 6, right: 70, bottom: 28 },
+      });
+
+      appMenu.overflowLabel.getElement().click();
+      await flushMicrotasks();
+
+      let request = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      expect(requestWithoutHoverMetadata(request)).toEqual({
+        kind: "overflow",
+        ids: ["Edit", "Help"],
+        x: 40,
+        y: 28,
+        sourceType: "mouse",
+      });
+      expect(request.hoverTargets.map((target) => target.kind)).toEqual(["submenu", "overflow"]);
+      expect(request.activeHoverTarget).toBe(request.hoverTargets[1].key);
+
+      appMenu.focusLastLabel();
+      appMenu.onKeyDown({
+        key: "Enter",
+        repeat: false,
+        stopPropagation() {},
+        preventDefault() {},
+      });
+      await flushMicrotasks();
+      request = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      expect(requestWithoutHoverMetadata(request)).toEqual({
+        kind: "overflow",
+        ids: ["Edit", "Help"],
+        x: 40,
+        y: 28,
+        sourceType: "keyboard",
+      });
+    });
+
+    it("opens an overflowed mnemonic directly and anchors it under the overflow label", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.resolveTo(true);
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      appMenu.setOverflowStartIndex(1);
+      appMenu.showAltKeys(true);
+      setNativeMenuBounds(appMenu, {
+        overflow: { left: 50.6, top: 7.2, right: 80.1, bottom: 30.4 },
+      });
+
+      appMenu.onKeyDown({
+        key: "h",
+        repeat: false,
+        stopPropagation() {},
+        preventDefault() {},
+      });
+      await flushMicrotasks();
+
+      const request = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      expect(requestWithoutHoverMetadata(request)).toEqual({
+        kind: "submenu",
+        id: "Help",
+        x: 51,
+        y: 30,
+        sourceType: "keyboard",
+      });
+      const overflowTarget = request.hoverTargets.find((target) => target.kind === "overflow");
+      expect(request.activeHoverTarget).toBe(overflowTarget.key);
+    });
+
+    it("switches a pending native popup from File to Edit on a current hover request", async () => {
+      configState.customMenus = false;
+      let requestSwitch;
+      const originalSubscription = lumine.window.onDidRequestApplicationMenuPopupSwitch;
+      const switchSubscription = jasmine.createSpyObj("switchSubscription", ["dispose"]);
+      lumine.window.onDidRequestApplicationMenuPopupSwitch = (callback) => {
+        requestSwitch = callback;
+        return switchSubscription;
+      };
+      spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+      const closePopup = spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+
+      try {
+        appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+        setNativeMenuBounds(appMenu);
+        const [file, edit] = appMenu.getLabels();
+
+        file.getElement().click();
+        await flushMicrotasks();
+        const firstRequest = lumine.window.showApplicationMenuPopup.calls.argsFor(0)[0];
+        const editTarget = firstRequest.hoverTargets.find((target) => target.id === "Edit");
+
+        requestSwitch({
+          from: firstRequest.activeHoverTarget,
+          target: switchEventTarget(editTarget),
+        });
+        await flushMicrotasks();
+
+        expect(closePopup).toHaveBeenCalledTimes(1);
+        expect(lumine.window.showApplicationMenuPopup).toHaveBeenCalledTimes(2);
+        expect(
+          requestWithoutHoverMetadata(
+            lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0],
+          ),
+        ).toEqual({ kind: "submenu", id: "Edit", x: 48, y: 25, sourceType: "mouse" });
+        expect(file.isFocused()).toBe(false);
+        expect(edit.isFocused()).toBe(true);
+      } finally {
+        lumine.window.onDidRequestApplicationMenuPopupSwitch = originalSubscription;
+      }
+    });
+
+    it("ignores a stale native hover request", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      setNativeMenuBounds(appMenu);
+
+      appMenu.getLabels()[0].getElement().click();
+      await flushMicrotasks();
+      const request = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      const editTarget = request.hoverTargets.find((target) => target.id === "Edit");
+
+      appMenu.onNativeMenuPopupSwitch({
+        from: "an-older-session:submenu:0",
+        target: switchEventTarget(editTarget),
+      });
+      await flushMicrotasks();
+
+      expect(lumine.window.showApplicationMenuPopup).toHaveBeenCalledTimes(1);
+      expect(appMenu.getLabels()[0].isFocused()).toBe(true);
+    });
+
+    it("names native hover sessions uniquely across application menu instances", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+      const previousMenu = ApplicationMenu.createApplicationMenu(template, parent);
+
+      try {
+        setNativeMenuBounds(previousMenu);
+        previousMenu.getLabels()[0].getElement().click();
+        await flushMicrotasks();
+        const previousRequest = lumine.window.showApplicationMenuPopup.calls.argsFor(0)[0];
+
+        appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+        setNativeMenuBounds(appMenu);
+        appMenu.getLabels()[0].getElement().click();
+        await flushMicrotasks();
+        const currentRequest = lumine.window.showApplicationMenuPopup.calls.argsFor(1)[0];
+
+        expect(currentRequest.activeHoverTarget).not.toBe(previousRequest.activeHoverTarget);
+        expect(currentRequest.hoverTargets.map((target) => target.key)).not.toEqual(
+          previousRequest.hoverTargets.map((target) => target.key),
+        );
+
+        const previousEditTarget = previousRequest.hoverTargets.find(
+          (target) => target.id === "Edit",
+        );
+        appMenu.onNativeMenuPopupSwitch({
+          from: previousRequest.activeHoverTarget,
+          target: switchEventTarget(previousEditTarget),
+        });
+        await flushMicrotasks();
+
+        expect(lumine.window.showApplicationMenuPopup).toHaveBeenCalledTimes(2);
+        expect(appMenu.getLabels()[0].isFocused()).toBe(true);
+      } finally {
+        previousMenu.destroy();
+        previousMenu.getElement().remove();
+      }
+    });
+
+    it("switches from a visible label to the native overflow popup", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      appMenu.setOverflowStartIndex(1);
+      setNativeMenuBounds(appMenu);
+
+      appMenu.getLabels()[0].getElement().click();
+      await flushMicrotasks();
+      const firstRequest = lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0];
+      const overflowTarget = firstRequest.hoverTargets.find((target) => target.kind === "overflow");
+
+      appMenu.onNativeMenuPopupSwitch({
+        from: firstRequest.activeHoverTarget,
+        target: switchEventTarget(overflowTarget),
+      });
+      await flushMicrotasks();
+
+      expect(
+        requestWithoutHoverMetadata(
+          lumine.window.showApplicationMenuPopup.calls.mostRecent().args[0],
+        ),
+      ).toEqual({
+        kind: "overflow",
+        ids: ["Edit", "Help"],
+        x: 48,
+        y: 25,
+        sourceType: "mouse",
+      });
+      expect(appMenu.overflowLabel.isFocused()).toBe(true);
+    });
+
+    it("disposes its native popup switch subscription", () => {
+      const originalSubscription = lumine.window.onDidRequestApplicationMenuPopupSwitch;
+      const subscription = jasmine.createSpyObj("nativePopupSwitchSubscription", ["dispose"]);
+      lumine.window.onDidRequestApplicationMenuPopupSwitch = () => subscription;
+
+      try {
+        appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+        appMenu.destroy();
+        expect(subscription.dispose).toHaveBeenCalledTimes(1);
+      } finally {
+        lumine.window.onDidRequestApplicationMenuPopupSwitch = originalSubscription;
+      }
+    });
+
+    it("keeps a newer native session active when the previous popup settles", async () => {
+      configState.customMenus = false;
+      const popupResolvers = [];
+      spyOn(lumine.window, "showApplicationMenuPopup").and.callFake(
+        () =>
+          new Promise((resolve) => {
+            popupResolvers.push(resolve);
+          }),
+      );
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      const [file, edit] = appMenu.getLabels();
+      setNativeMenuBounds(appMenu, {
+        File: { left: 1, top: 0, right: 2, bottom: 2 },
+        Edit: { left: 3, top: 0, right: 5, bottom: 4 },
+      });
+
+      appMenu.openNativeMenu(file, "mouse");
+      await flushMicrotasks();
+      appMenu.openNativeMenu(edit, "mouse");
+      await flushMicrotasks();
+      popupResolvers[0](true);
+      await flushMicrotasks();
+
+      expect(edit.isFocused()).toBe(true);
+      expect(file.isFocused()).toBe(false);
+
+      popupResolvers[1](true);
+      await flushMicrotasks();
+      expect(edit.isFocused()).toBe(false);
+    });
+
+    it("cleans native state after a rejected popup without opening the HTML menu", async () => {
+      configState.customMenus = false;
+      spyOn(console, "error");
+      spyOn(lumine.window, "showApplicationMenuPopup").and.rejectWith(new Error("window gone"));
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.returnValue(false);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      const file = appMenu.getLabels()[0];
+      setNativeMenuBounds(appMenu, {
+        File: { left: 1, top: 0, right: 2, bottom: 2 },
+      });
+
+      const result = await appMenu.openNativeMenu(file, "mouse");
+
+      expect(result).toBe(false);
+      expect(file.isFocused()).toBe(false);
+      expect(file.isOpen()).toBe(false);
+      expect(appMenu.nativePopupPromise).toBeNull();
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("closes a pending native popup on blur and on a live mode change", async () => {
+      configState.customMenus = false;
+      spyOn(lumine.window, "showApplicationMenuPopup").and.returnValue(new Promise(() => {}));
+      spyOn(lumine.window, "closeApplicationMenuPopup").and.resolveTo(true);
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+      const file = appMenu.getLabels()[0];
+      setNativeMenuBounds(appMenu, {
+        File: { left: 1, top: 0, right: 2, bottom: 2 },
+      });
+
+      appMenu.openNativeMenu(file, "mouse");
+      await flushMicrotasks();
+      appMenu.blur();
+      await flushMicrotasks();
+      expect(lumine.window.closeApplicationMenuPopup.calls.count()).toBe(1);
+      expect(file.isFocused()).toBe(false);
+
+      appMenu.openNativeMenu(file, "mouse");
+      await flushMicrotasks();
+      configState.customMenus = true;
+      appMenu.onMenuModeChanged();
+      await flushMicrotasks();
+      expect(lumine.window.closeApplicationMenuPopup.calls.count()).toBe(2);
+      expect(file.isFocused()).toBe(false);
+    });
+
+    it("cancels a deferred focus command when the menu mode changes", () => {
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+
+      appMenu.focusMenuCommand();
+      configState.customMenus = false;
+      platform = "darwin";
+      appMenu.onMenuModeChanged();
+      advanceClock(1);
+
+      expect(appMenu.getFocusedLabel()).toBeNull();
+    });
+
+    it("disables title-bar menu interaction when macOS uses its global menu", () => {
+      configState.customMenus = false;
+      configState.altGivesFocus = true;
+      platform = "darwin";
+      spyOn(lumine.window, "showApplicationMenuPopup");
+      appMenu = ApplicationMenu.createApplicationMenu(template, parent);
+
+      appMenu.onKeyDown({ key: "Alt", repeat: false });
+      appMenu.onKeyUp({ key: "Alt" });
+      appMenu.focusMenuCommand();
+      appMenu.getLabels()[0].getElement().click();
+
+      expect(appMenu.canInteract()).toBe(false);
+      expect(appMenu.getFocusedLabel()).toBeNull();
+      expect(appMenu.showingAltKeys).toBe(false);
+      expect(lumine.window.showApplicationMenuPopup).not.toHaveBeenCalled();
+      expect(shouldUseGlobalApplicationMenu(false, "darwin")).toBe(true);
+      expect(shouldUseGlobalApplicationMenu(false, "win32")).toBe(false);
+      expect(shouldUseGlobalApplicationMenu(true, "darwin")).toBe(false);
     });
 
     it("includes the overflow label in keyboard navigation", () => {

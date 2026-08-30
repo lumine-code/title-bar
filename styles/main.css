@@ -513,6 +513,10 @@
       }
     }
 
+    &.native-global-menu {
+      display: none;
+    }
+
     .menu-label {
       -webkit-app-region: no-drag;
       app-region: no-drag;

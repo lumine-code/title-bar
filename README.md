@@ -8,6 +8,7 @@ Theme-aware custom title bar with integrated menu.
 - **Control themes**: offers Windows 11, macOS Tahoe, and GNOME window controls, with default resolving to the platform theme.
 - **Theme-aware colors**: derives colors from the Lumine UI variables.
 - **Keyboard menu**: navigates the menu with alt mnemonics.
+- **Menu popup backends**: uses theme-aware HTML application and context menus by default, or native Electron popups when `title-bar.customMenus` is disabled. Native application-menu hover switching is available on Windows and Linux/X11; Wayland native popups remain click-only because Electron cannot report the cursor position there.
 - **Auto-hidden menu bar**: optionally hides the menu bar until revealed.
 - **Tile host**: lets other packages add controls near the window buttons through a service.
 

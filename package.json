@@ -28,7 +28,7 @@
   },
   "backgroundTips": [
     "{% if keys['title-bar:focus-menu'] %}You can put the keyboard into the application menu with {{ 'title-bar:focus-menu' | keystroke }}{% else %}You can put the keyboard into the application menu by tapping Alt, then reach any item by its underlined letter.{% endif %}",
-    "You can right-click anywhere for a context menu drawn and themed like the rest of the editor rather than by the operating system."
+    "Application and context menu popups can follow the editor theme or use the operating system's native menus."
   ],
   "scripts": {
     "test": "lumine --test spec",
@@ -49,9 +49,9 @@
       ],
       "default": "Default"
     },
-    "customContextMenus": {
-      "title": "Custom Context Menus",
-      "description": "Use custom styled HTML context menus instead of native Electron menus. Matches the title bar styling.",
+    "customMenus": {
+      "title": "Custom Menus",
+      "description": "Use theme-aware HTML application and context menu popups instead of native Electron menus.",
       "type": "boolean",
       "default": true
     },

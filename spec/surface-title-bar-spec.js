@@ -63,7 +63,7 @@ describe("title-bar.surface service", () => {
     originalShowForEvent = lumine.contextMenu.showForEvent;
     originalShowForSurfaceEvent = lumine.contextMenu.showForSurfaceEvent;
     lumine.config.set("core.titleBar", "native");
-    lumine.config.set("title-bar.customContextMenus", true);
+    lumine.config.set("title-bar.customMenus", true);
     pack = await lumine.packages.activatePackage("title-bar");
     factory = pack.mainModule.provideSurfaceTitleBar();
     frames = [];
