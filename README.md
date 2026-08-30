@@ -26,7 +26,6 @@ Commands available in `lumine-workspace`:
 ## Services
 
 - [`title-bar`](docs/title-bar.md): provided to let other packages add control tiles to the title bar near the window buttons.
-- [`title-bar.surface`](docs/title-bar.surface.md): creates realm-local chrome for secondary editor windows without an application menu.
 
 ## Customization
 

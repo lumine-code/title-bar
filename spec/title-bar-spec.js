@@ -234,158 +234,19 @@ describe("Title Bar package", () => {
 
   it("does not overwrite context-menu integrations installed after its wrappers", () => {
     const originalShowForEvent = lumine.contextMenu.showForEvent;
-    const originalShowForSurfaceEvent = lumine.contextMenu.showForSurfaceEvent;
     const interceptor = new ContextMenuInterceptor();
     const laterShowForEvent = () => {};
-    const laterShowForSurfaceEvent = () => {};
 
     try {
       interceptor.activate();
       lumine.contextMenu.showForEvent = laterShowForEvent;
-      lumine.contextMenu.showForSurfaceEvent = laterShowForSurfaceEvent;
       interceptor.deactivate();
 
       expect(lumine.contextMenu.showForEvent).toBe(laterShowForEvent);
-      expect(lumine.contextMenu.showForSurfaceEvent).toBe(laterShowForSurfaceEvent);
     } finally {
       interceptor.deactivate();
       lumine.contextMenu.showForEvent = originalShowForEvent;
-      lumine.contextMenu.showForSurfaceEvent = originalShowForSurfaceEvent;
     }
-  });
-
-  describe("custom context menus in secondary surfaces", () => {
-    let frames, contextMenuItems, commandSubscriptions;
-
-    beforeEach(() => {
-      frames = [];
-      commandSubscriptions = [];
-      contextMenuItems = lumine.contextMenu.add({
-        ".title-bar-surface-context-target": [
-          { label: "Surface action", command: "title-bar-spec:surface-action" },
-        ],
-      });
-    });
-
-    afterEach(() => {
-      const boundary = document.createElement("div");
-      boundary.dataset.contextMenuBoundary = "";
-      document.body.appendChild(boundary);
-      lumine.contextMenu.showForEvent({ target: boundary, clientX: 0, clientY: 0 });
-      boundary.remove();
-      for (const subscription of commandSubscriptions) subscription.dispose();
-      contextMenuItems.dispose();
-      for (const frame of frames) frame.remove();
-      // Closing a context menu deliberately restores focus in its source
-      // realm. Return it to the surviving spec document after that realm goes.
-      document.body.focus();
-    });
-
-    function createSurfaceTarget() {
-      const frame = document.createElement("iframe");
-      jasmine.attachToDOM(frame);
-      frames.push(frame);
-      const target = frame.contentDocument.createElement("div");
-      target.classList.add("title-bar-surface-context-target");
-      frame.contentDocument.body.appendChild(target);
-      commandSubscriptions.push(lumine.commands.attach(frame.contentWindow));
-      return { frame, target };
-    }
-
-    function openSurfaceContextMenu(target, nativeMenu) {
-      return lumine.contextMenu.showForSurfaceEvent(
-        { target, clientX: 12, clientY: 24 },
-        { windowService: { showContextMenu: nativeMenu } },
-      );
-    }
-
-    it("renders each surface menu in the right-clicked target's realm", () => {
-      const first = createSurfaceTarget();
-      const second = createSurfaceTarget();
-      const firstNativeMenu = jasmine.createSpy("firstNativeMenu");
-      const secondNativeMenu = jasmine.createSpy("secondNativeMenu");
-
-      openSurfaceContextMenu(first.target, firstNativeMenu);
-      const firstMenu = first.frame.contentDocument.querySelector(".context-menu-container");
-      expect(firstMenu).not.toBeNull();
-      expect(firstMenu.ownerDocument).toBe(first.frame.contentDocument);
-      expect(firstMenu.querySelector(".menu-item").ownerDocument).toBe(first.frame.contentDocument);
-      expect(document.querySelector(".context-menu-container")).toBeNull();
-      expect(second.frame.contentDocument.querySelector(".context-menu-container")).toBeNull();
-
-      openSurfaceContextMenu(second.target, secondNativeMenu);
-      const secondMenu = second.frame.contentDocument.querySelector(".context-menu-container");
-      expect(first.frame.contentDocument.querySelector(".context-menu-container")).toBeNull();
-      expect(secondMenu).not.toBeNull();
-      expect(secondMenu.ownerDocument).toBe(second.frame.contentDocument);
-      expect(
-        second.frame.contentDocument.querySelector(".context-menu-submenu-portal"),
-      ).not.toBeNull();
-      expect(firstNativeMenu).not.toHaveBeenCalled();
-      expect(secondNativeMenu).not.toHaveBeenCalled();
-    });
-
-    it("dispatches a surface menu command at its child-document target", async () => {
-      const first = createSurfaceTarget();
-      const second = createSurfaceTarget();
-      const firstAction = jasmine.createSpy("firstAction");
-      const secondAction = jasmine.createSpy("secondAction");
-      commandSubscriptions.push(
-        lumine.commands.add(first.target, "title-bar-spec:surface-action", firstAction),
-        lumine.commands.add(second.target, "title-bar-spec:surface-action", secondAction),
-      );
-
-      openSurfaceContextMenu(second.target, jasmine.createSpy("nativeMenu"));
-      second.frame.contentDocument.querySelector(".context-menu-container .menu-item").click();
-      advanceClock(10);
-      await flushMicrotasks();
-
-      expect(firstAction).not.toHaveBeenCalled();
-      expect(secondAction.calls.mostRecent().args[0].target).toBe(second.target);
-      expect(second.frame.contentDocument.querySelector(".context-menu-container")).toBeNull();
-    });
-
-    it("keeps primary custom context menus in the primary document", () => {
-      const target = document.createElement("div");
-      target.classList.add("title-bar-surface-context-target");
-      jasmine.attachToDOM(target);
-
-      try {
-        lumine.contextMenu.showForEvent({ target, clientX: 8, clientY: 16 });
-
-        const menu = document.querySelector(".context-menu-container");
-        expect(menu).not.toBeNull();
-        expect(menu.ownerDocument).toBe(document);
-      } finally {
-        target.remove();
-      }
-    });
-
-    it("restores native context menus in primary and secondary surfaces", async () => {
-      const primary = document.createElement("div");
-      primary.classList.add("title-bar-surface-context-target");
-      jasmine.attachToDOM(primary);
-      const secondary = createSurfaceTarget();
-      const primaryNativeMenu = spyOn(
-        lumine.contextMenu.applicationDelegate,
-        "showContextMenu",
-      ).and.resolveTo();
-      const surfaceNativeMenu = jasmine.createSpy("surfaceNativeMenu").and.resolveTo();
-
-      try {
-        lumine.config.set("title-bar.customMenus", false);
-        await lumine.contextMenu.showForEvent({ target: primary, clientX: 8, clientY: 16 });
-        await openSurfaceContextMenu(secondary.target, surfaceNativeMenu);
-
-        expect(primaryNativeMenu).toHaveBeenCalled();
-        expect(surfaceNativeMenu).toHaveBeenCalled();
-        expect(document.querySelector(".context-menu-container")).toBeNull();
-        expect(secondary.frame.contentDocument.querySelector(".context-menu-container")).toBeNull();
-      } finally {
-        lumine.config.set("title-bar.customMenus", true);
-        primary.remove();
-      }
-    });
   });
 
   // The strip is inset from the window top, and every interactive item in it

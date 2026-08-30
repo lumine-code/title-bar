@@ -634,33 +634,6 @@
   }
 }
 
-/* Detached surfaces mount the same chrome directly at the top of their
-   viewport, rather than in the primary workspace's inset header panel. */
-.title-bar.surface-title-bar {
-  height: var(--title-bar-height);
-  min-width: 0;
-  margin-top: 0;
-
-  /* Core icons reserve trailing space for a following label. Surface actions
-     are icon-only, so split that allowance across both sides instead: the
-     glyph stays centred when a theme paints the tile's hover background. */
-  .surface-title-bar-action.icon {
-    padding-left: calc(var(--component-icon-padding) / 2);
-    padding-right: calc(var(--component-icon-padding) / 2);
-
-    &::before {
-      margin-right: 0;
-    }
-  }
-
-  .title-bar-item:focus-visible,
-  .app-icon[role="button"]:focus-visible,
-  .window-buttons button:focus-visible {
-    outline: 1px solid var(--text-color-info);
-    outline-offset: -2px;
-  }
-}
-
 @keyframes item-bounce {
   0% {
     transform: scale(1);
