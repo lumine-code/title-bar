@@ -7,8 +7,7 @@
     "frameless",
     "menubar",
     "window-controls",
-    "mnemonics",
-    "context-menu"
+    "mnemonics"
   ],
   "repository": "https://github.com/lumine-code/title-bar",
   "bugs": {
@@ -27,8 +26,7 @@
     "lumine": "^1.0.0"
   },
   "backgroundTips": [
-    "{% if keys['title-bar:focus-menu'] %}You can put the keyboard into the application menu with {{ 'title-bar:focus-menu' | keystroke }}{% else %}You can put the keyboard into the application menu by tapping Alt, then reach any item by its underlined letter.{% endif %}",
-    "Application and context menu popups can follow the editor theme or use the operating system's native menus."
+    "{% if platform != 'darwin' %}{% if keys['title-bar:focus-menu'] %}You can put the keyboard into the application menu with {{ 'title-bar:focus-menu' | keystroke }}{% else %}You can put the keyboard into the application menu by tapping Alt, then reach any item by its underlined letter.{% endif %}{% endif %}"
   ],
   "scripts": {
     "test": "lumine --test spec",
@@ -49,12 +47,6 @@
       ],
       "default": "Default"
     },
-    "customMenus": {
-      "title": "Custom Menus",
-      "description": "Use theme-aware HTML application and context menu popups instead of native Electron menus.",
-      "type": "boolean",
-      "default": true
-    },
     "autoHide": {
       "title": "Auto Hide Menu Bar",
       "description": "Automatically hide the menu bar and toggle it by pressing Alt.",
@@ -74,9 +66,6 @@
         "1.0.0": "provideTitleBar"
       }
     }
-  },
-  "dependencies": {
-    "@lumine-code/underscore-plus": "github:lumine-code/underscore-plus#fd9c48ac852a303e1fbc2e1ae77dbefa57ba6052"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

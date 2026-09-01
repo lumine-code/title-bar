@@ -83,11 +83,11 @@ The same shape as a status-bar tile, for the strip at the top of the window. Fol
 
 Related controls that travel together go in a `<title-bar-tile-group>`, handed to `addItem` in place of a tile. The group is a layout box and never a tile itself: the bar marks its `<title-bar-tile>` children instead, so a theme paints one rectangle per control rather than one across the group.
 
-The strip is a drag region, and the bar exempts every tile from that automatically. It also sits a few pixels below the window top and reaches back up into that inset, so a tile drawn full height lines up with the application menu and the window buttons — see `--title-bar-item-bleed` in the package's stylesheet if your theme insets tiles instead.
+The strip is a drag region, and the bar exempts every tile from that automatically. It also sits a few pixels below the window top and extends every tile's hit target back through that inset, so full-height controls and visually inset pills alike remain clickable at the screen edge; `--title-bar-item-bleed` controls only whether the visible tile follows that hit target or stays inside the bar.
 
 ## Behavior
 
-The service is `undefined` when the title bar is not rendered. With `core.titleBar` set to `native` the operating system draws the bar and this package draws nothing, so `provideTitleBar` resolves through an optional chain and yields nothing. **Guard your consumer**: it may be handed `undefined` rather than never being called.
+The package owns the window chrome on every platform. On Windows and Linux it also hosts core's HTML application menu; macOS keeps its Application Menu in the system menu bar. This platform difference does not change the control-tile service.
 
 Tiles are inserted in priority order at the moment they are added, so a later tile still lands in the right place.
 

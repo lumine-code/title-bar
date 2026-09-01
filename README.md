@@ -4,12 +4,11 @@ Theme-aware custom title bar with integrated menu.
 
 ## Features
 
-- **Custom title bar**: replaces the native title bar on a frameless window, and stands aside when `core.titleBar` is set to `native`.
+- **Custom title bar**: owns the title, drag region, window controls, app icon, and control tiles on every frameless window.
 - **Control themes**: offers Windows 11, macOS Tahoe, and GNOME window controls, with default resolving to the platform theme.
 - **Theme-aware colors**: derives colors from the Lumine UI variables.
-- **Keyboard menu**: navigates the menu with alt mnemonics.
-- **Menu popup backends**: uses theme-aware HTML application and context menus by default, or native Electron popups when `title-bar.customMenus` is disabled. Native application-menu hover switching is available on Windows and Linux/X11; Wayland native popups remain click-only because Electron cannot report the cursor position there.
-- **Auto-hidden menu bar**: optionally hides the menu bar until revealed.
+- **Keyboard menu**: hosts core's HTML application menu on Windows and Linux, activated by tapping Alt; macOS keeps its system Application Menu.
+- **Auto-hidden menu bar**: optionally hides the Windows/Linux menu bar until revealed.
 - **Tile host**: lets other packages add controls near the window buttons through a service.
 
 ## Installation
@@ -21,7 +20,8 @@ To install `title-bar` search for it in the Install pane of the Lumine settings,
 Commands available in `lumine-workspace`:
 
 - `title-bar:toggle`: toggle title bar visibility,
-- `title-bar:focus-menu`: focus the first menu label for keyboard navigation.
+- `title-bar:focus-menu`: focus the first menu label for keyboard navigation on Windows/Linux,
+- `window:toggle-menu-bar`: toggle automatic menu-bar hiding on Windows/Linux.
 
 ## Services
 
@@ -37,12 +37,12 @@ Restyle the title bar by adding CSS to your `styles.css`. For example, to give i
 }
 ```
 
-The custom properties the package reads are declared on `:root`, so override them there rather than on `.title-bar` — the context menu and the submenu portals are children of `<body>` and never see a value set on the bar:
+The custom properties the package reads are declared on `:root`, so override them there rather than on `.title-bar`:
 
 ```css
 :root {
   --title-bar-height: 40px;
-  --title-bar-menu-box-radius: 0px;
+  --title-bar-control-width: 42px;
 }
 ```
 

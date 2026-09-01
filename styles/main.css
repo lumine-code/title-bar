@@ -3,9 +3,8 @@
    Override these in your styles.css to customize the title bar appearance.
    Example: :root { --title-bar-height: 40px; }
 
-   They are declared on :root rather than on .title-bar because the context
-   menu and both submenu portals are children of <body>, not of the bar -- a
-   value set on .title-bar would never reach them.
+   They are declared on :root so packages and user styles can tune the chrome
+   without having to match the title bar selector's specificity.
    ============================================================================ */
 
 :root {
@@ -19,24 +18,11 @@
      platform's own on each of the three. */
   --title-bar-font-family: var(--font-family);
 
-  /* Menu */
-  --title-bar-menu-font-size: var(--font-size);
-  --title-bar-menu-item-height: 28px;
-  --title-bar-menu-item-padding: 14px;
-  --title-bar-menu-item-margin: 3px;
-  --title-bar-menu-item-radius: 4px;
-  --title-bar-menu-box-radius: 6px;
-  --title-bar-menu-box-min-width: 200px;
-  --title-bar-menu-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
-  --title-bar-menu-label-padding: 8px;
-  --title-bar-menu-label-radius: 0px;
-
   /* Title */
   --title-bar-title-font-size: var(--font-size);
   --title-bar-title-gap: 8px;
 
   /* Transitions */
-  --title-bar-transition-fast: 0.05s;
   --title-bar-transition-normal: 0.1s;
   --title-bar-transition-slow: 0.15s;
 
@@ -57,211 +43,6 @@
   --title-bar-gnome-close-hover-color: #fff;
   --title-bar-gnome-button-hover-bg: rgb(from var(--text-color) r g b / 12%);
   --title-bar-gnome-button-active-bg: rgb(from var(--text-color) r g b / 18%);
-}
-
-/* ============================================================================
-   Menu boxes
-
-   Every menu surface this package draws carries `.menu-box`: the application
-   menu's dropdowns, the context menu, and the portaled submenus of both. So
-   one rule set dresses all four, and only where each is positioned differs.
-   The four roots keep the selector off anybody else's `.menu-box`.
-   ============================================================================ */
-
-.title-bar .menu-box,
-.context-menu-container .menu-box,
-.app-menu-submenu-portal .menu-box,
-.context-menu-submenu-portal .menu-box {
-  min-width: var(--title-bar-menu-box-min-width);
-  padding: 6px 0;
-  border: 1px solid var(--overlay-border-color);
-  border-radius: var(--title-bar-menu-box-radius);
-  background-color: var(--overlay-background-color);
-  box-shadow: var(--title-bar-menu-box-shadow);
-  font-family: var(--title-bar-font-family);
-  font-size: var(--title-bar-menu-font-size);
-  font-weight: 400;
-  cursor: default;
-  contain: layout style;
-  -webkit-user-select: none;
-  user-select: none;
-
-  hr {
-    height: 1px;
-    margin: 4px 0;
-    border: none;
-    background-color: var(--base-border-color);
-
-    /* A separator that survived normalization at the edge of a box draws a
-       rule against the box's own border. */
-    &:first-child,
-    &:last-child {
-      display: none;
-    }
-  }
-
-  .menu-item {
-    display: flex;
-    position: relative;
-    align-items: center;
-    justify-content: space-between;
-    height: var(--title-bar-menu-item-height);
-    padding: 0 var(--title-bar-menu-item-padding);
-    margin: 0 var(--title-bar-menu-item-margin);
-    border-radius: var(--title-bar-menu-item-radius);
-    color: var(--text-color);
-    transition: background-color var(--title-bar-transition-fast) ease;
-
-    &.disabled {
-      color: var(--text-color-subtle);
-    }
-
-    &.invisible {
-      display: none;
-    }
-
-    .menu-item-name {
-      white-space: nowrap;
-    }
-
-    .menu-item-keystroke {
-      display: inline-flex;
-      align-items: center;
-      height: 100%;
-      margin-left: 24px;
-      color: var(--text-color-subtle);
-      font-size: var(--title-bar-menu-font-size);
-      white-space: nowrap;
-    }
-
-    &:hover:not(.disabled),
-    &.selected:not(.disabled) {
-      background-color: var(--background-color-highlight);
-    }
-
-    &:active:not(.disabled) {
-      background-color: var(--background-color-selected);
-    }
-
-    /* The submenu arrow rides in the keystroke slot -- an item with a submenu
-       never has a keystroke of its own. */
-    &.has-sub > .menu-item-keystroke:after {
-      content: "";
-      display: block;
-      width: 0;
-      height: 0;
-      margin-left: 8px;
-      margin-right: -4px;
-      border-top: 4px solid transparent;
-      border-bottom: 4px solid transparent;
-      border-left: 5px solid currentColor;
-      opacity: 0.7;
-    }
-
-    /* A recent project that spans several folders lists them one per line. */
-    &.menu-item-multipath {
-      height: auto;
-      padding-top: 4px;
-      padding-bottom: 4px;
-      align-items: flex-start;
-
-      .menu-item-path-line {
-        line-height: 20px;
-        white-space: nowrap;
-      }
-    }
-
-    &.bounce {
-      animation: item-bounce 0.15s ease;
-    }
-
-    .menu-item-submenu {
-      position: absolute;
-      visibility: hidden;
-    }
-
-    &.open > .menu-item-submenu {
-      visibility: visible;
-    }
-  }
-
-  /* Mark which submenu is open, but only while the pointer is elsewhere --
-     under the pointer the hover highlight already says so. */
-  &:not(:hover) .menu-item.open {
-    background-color: var(--background-color-highlight);
-  }
-}
-
-/* The boxes that scroll: a top-level one, whose height the JS caps against the
-   viewport. A nested submenu is portaled and appears below under its portal's
-   own selector. `direction` moves the scrollbar to the inner edge, where it
-   does not sit between the menu and the item that opened it; every child turns
-   it back so the text still reads left to right. */
-.title-bar .app-menu .menu-label > .menu-box,
-.context-menu-container > .menu-box,
-.app-menu-submenu-portal > .menu-box,
-.context-menu-submenu-portal > .menu-box {
-  overflow-x: hidden;
-  overflow-y: auto;
-  direction: rtl;
-
-  > * {
-    direction: ltr;
-  }
-}
-
-/* ============================================================================
-   Scrollbar Styles
-   Inline-expanded from the theme-level .scrollbars-visible-always() mixin so
-   descendant .menu-box scrollbars are always visible. The scrollable
-   .menu-box elements just need overflow.
-   ============================================================================ */
-
-.title-bar .app-menu .menu-label,
-.context-menu-container,
-.app-menu-submenu-portal,
-.context-menu-submenu-portal {
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--scrollbar-background-color);
-    border-radius: var(--title-bar-menu-box-radius) 0 0 var(--title-bar-menu-box-radius);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    border-radius: 5px;
-    border: 3px solid var(--scrollbar-background-color);
-    background: var(--scrollbar-color);
-    background-clip: content-box;
-  }
-
-  ::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-}
-
-/* Held-thumb rules must stay un-nested: Chromium never matches a
-   :hover/:active scrollbar-part rule whose selector comes from CSS nesting. */
-.title-bar .app-menu .menu-label ::-webkit-scrollbar-thumb:vertical:active,
-.context-menu-container ::-webkit-scrollbar-thumb:vertical:active,
-.app-menu-submenu-portal ::-webkit-scrollbar-thumb:vertical:active,
-.context-menu-submenu-portal ::-webkit-scrollbar-thumb:vertical:active {
-  border-radius: 0;
-  border-left-width: 0;
-  border-right-width: 0;
-}
-
-.title-bar .app-menu .menu-label ::-webkit-scrollbar-thumb:horizontal:active,
-.context-menu-container ::-webkit-scrollbar-thumb:horizontal:active,
-.app-menu-submenu-portal ::-webkit-scrollbar-thumb:horizontal:active,
-.context-menu-submenu-portal ::-webkit-scrollbar-thumb:horizontal:active {
-  border-radius: 0;
-  border-top-width: 0;
-  border-bottom-width: 0;
 }
 
 /* ============================================================================
@@ -298,12 +79,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
     /* Scale down if title-bar is smaller than icon size */
     width: min(var(--title-bar-icon-size), calc(var(--title-bar-height) - 8px));
-    height: 100%;
+    height: calc(100% + 4px);
+    margin-top: -4px;
+    padding-top: 4px;
     order: 0;
     flex-shrink: 0;
     margin-left: var(--title-bar-icon-margin);
+    z-index: 1;
 
     img {
       display: block;
@@ -338,30 +123,22 @@
     pointer-events: none;
   }
 
-  /* The strip sits below the window top, and every interactive item in it
-     reaches back into that inset so its hit target touches the screen edge on
-     a maximised window — `.app-menu`'s labels and `.window-buttons` both do.
-
-     The bleed belongs to this row, not to the tiles inside it. This row clips
-     its overflow so a long window title cannot push a tile out of the bar, and
-     a clip is taken at the padding box: a tile that bled on its own would be
-     laid out reaching the window edge and then have exactly that part painted
-     away — which is invisible to `getBoundingClientRect`, so measure the
-     pixels, not the box. Bleed the row and the clip moves with it.
-
-     A theme drawing an inset pill sets `--title-bar-item-bleed: 0px` here, on
-     the row, because a pill is measured against the bar rather than the
-     window — and because the row is what has to stop clipping above it. It
-     must be a length: `calc(100% + 0)` is invalid, so a unitless zero drops
-     the height to `auto` and collapses the row to its content. */
+  /* The visible bar sits four pixels below the window top, but the control row
+     always reaches back through that inset. A theme may set
+     `--title-bar-item-bleed: 0px` to keep the visible tile inside the bar; the
+     tile's transparent hit layer still spans the full row, so an inset pill
+     remains clickable at the screen edge. The row clips that layer vertically
+     and also prevents a long window title from pushing a tile out of the bar. */
   .control-tiles {
     --title-bar-item-bleed: 4px;
     -webkit-app-region: no-drag;
     app-region: no-drag;
     display: flex;
     align-items: center;
-    height: calc(100% + var(--title-bar-item-bleed));
-    margin-top: calc(var(--title-bar-item-bleed) * -1);
+    box-sizing: border-box;
+    height: calc(100% + 4px);
+    margin-top: -4px;
+    padding-top: 4px;
     margin-left: auto;
     order: 2;
     margin-right: 12px;
@@ -380,21 +157,29 @@
       app-region: no-drag;
     }
 
+    > title-bar-tile-group {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+
     /* The box a control tile sits in, and nothing about how it looks: colour,
        hover feedback and rounding are the UI theme's, the same division the
        status bar uses. A tile is the element this bar stamped
        `.title-bar-item` on — never `.inline-block`, which is a layout utility
        packages also use *inside* a tile.
 
-       The tile fills the row, which has already bled up to the window edge, and
-       pads its content back down so the glyph still centres on the bar — the
-       same shape `.window-buttons` gives its buttons. */
+       By default the visible tile fills the row and pads its content back down
+       so the glyph stays centred. A theme may inset that visible box; the
+       separate hit layer below still fills the row. */
     .title-bar-item {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100%;
+      height: calc(100% + var(--title-bar-item-bleed));
       margin: 0;
+      margin-top: calc(var(--title-bar-item-bleed) * -1);
       padding: var(--title-bar-item-bleed) 0 0;
       border: none;
       background: transparent;
@@ -405,6 +190,18 @@
 
       svg {
         display: block;
+      }
+
+      /* The row clips this extension to its own full-height box. A pseudo
+         element participates in its originating element's hit testing, so the
+         package still receives hover/click on a visually inset control. */
+      &::after {
+        content: "";
+        position: absolute;
+        top: calc(var(--title-bar-height) * -1);
+        right: 0;
+        bottom: calc(var(--title-bar-height) * -1);
+        left: 0;
       }
     }
   }
@@ -478,139 +275,21 @@
     }
   }
 
-  .app-menu {
-    -webkit-app-region: drag;
-    app-region: drag;
+  .title-bar-menu-bar {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
     display: flex;
     align-items: center;
-    position: relative;
-    width: auto;
-    height: 100%;
+    box-sizing: border-box;
+    height: calc(100% + 4px);
+    margin-top: -4px;
     order: 1;
-    padding-left: var(--title-bar-menu-label-padding);
-    font-weight: 400;
-    font-size: var(--title-bar-menu-font-size);
-    overflow: visible;
+    flex: 0 1 auto;
+    min-width: 0;
     z-index: 2;
 
-    /* When Alt is pressed, show underlines */
-    &.alt-down .menu-label u {
-      text-decoration: underline;
-    }
-
-    .menu-label u {
-      text-decoration: none;
-    }
-
-    &.no-menu-bar {
-      display: flex;
-      .menu-label {
-        -webkit-app-region: drag;
-        app-region: drag;
-        opacity: 0;
-        transform: translateX(-12px);
-        pointer-events: none;
-      }
-    }
-
-    &.native-global-menu {
-      display: none;
-    }
-
-    .menu-label {
-      -webkit-app-region: no-drag;
-      app-region: no-drag;
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      height: calc(100% + 4px);
-      margin-top: -4px;
-      padding: 0 var(--title-bar-menu-label-padding);
+    > .menu-label {
       padding-top: 4px;
-      color: var(--text-color);
-      opacity: 1;
-      transform: translateX(0);
-      transition:
-        opacity var(--title-bar-transition-slow) ease,
-        transform var(--title-bar-transition-slow) ease;
-
-      /* Stagger the reveal, leftmost first, 0.02s apart. */
-      &:nth-child(1) {
-        transition-delay: 0s;
-      }
-      &:nth-child(2) {
-        transition-delay: 0.02s;
-      }
-      &:nth-child(3) {
-        transition-delay: 0.04s;
-      }
-      &:nth-child(4) {
-        transition-delay: 0.06s;
-      }
-      &:nth-child(5) {
-        transition-delay: 0.08s;
-      }
-      &:nth-child(6) {
-        transition-delay: 0.1s;
-      }
-      &:nth-child(7) {
-        transition-delay: 0.12s;
-      }
-      &:nth-child(8) {
-        transition-delay: 0.14s;
-      }
-
-      &.overflowed {
-        display: none;
-      }
-
-      /* The layer a label's highlight is painted on, because the label's own
-         box holds the submenu and cannot carry a background. Where the layer
-         sits is this package's business; what colour it takes in each state is
-         the UI theme's, the same division a control tile uses — a label and a
-         tile are the same affordance in the same strip and should not disagree
-         about what a hover looks like. */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: var(--title-bar-menu-label-radius);
-        background-color: transparent;
-        transition: background-color var(--title-bar-transition-normal) ease;
-        z-index: -1;
-      }
-
-      /* The dropdown hangs off the label, which is what makes it follow the
-         label when the bar reflows. JS caps its height and nudges its left
-         edge back inside the viewport. */
-      > .menu-box {
-        display: block;
-        visibility: hidden;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        margin-top: 2px;
-        transform: translate(-4px, 0);
-        z-index: 99999;
-      }
-
-      /* A submenu drawn in place rather than through the portal sits level
-         with its item, minus the box's own padding. */
-      .menu-item .menu-item-submenu {
-        top: -6px;
-      }
-    }
-
-    span.open > .menu-box {
-      visibility: visible;
-    }
-
-    div.open > .menu-box {
-      display: initial;
-      visibility: visible;
     }
   }
 
@@ -631,18 +310,6 @@
       margin-left: 0;
       order: 0;
     }
-  }
-}
-
-@keyframes item-bounce {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
   }
 }
 
@@ -725,48 +392,15 @@
     }
   }
 
-  /* The logo moves to the trailing edge and the menu follows the controls. */
+  /* The logo and menu move to the trailing edge with reversed controls. */
   .app-icon {
     order: 10;
     margin-left: 0;
     margin-right: var(--title-bar-icon-margin);
   }
 
-  .app-menu {
+  .title-bar-menu-bar {
     order: 2;
-
-    /* Reverse animation direction (app-menu is on right side) */
-    &.no-menu-bar .menu-label {
-      transform: translateX(12px);
-    }
-
-    /* Stagger from the right, since that is the edge the menu is anchored to. */
-    .menu-label {
-      &:nth-last-child(1) {
-        transition-delay: 0s;
-      }
-      &:nth-last-child(2) {
-        transition-delay: 0.02s;
-      }
-      &:nth-last-child(3) {
-        transition-delay: 0.04s;
-      }
-      &:nth-last-child(4) {
-        transition-delay: 0.06s;
-      }
-      &:nth-last-child(5) {
-        transition-delay: 0.08s;
-      }
-      &:nth-last-child(6) {
-        transition-delay: 0.1s;
-      }
-      &:nth-last-child(7) {
-        transition-delay: 0.12s;
-      }
-      &:nth-last-child(8) {
-        transition-delay: 0.14s;
-      }
-    }
   }
 }
 
@@ -836,55 +470,6 @@ body.is-blurred {
       &.btn-maximize {
         order: 2;
       }
-    }
-  }
-}
-
-/* ============================================================================
-   Context menu (right-click menu)
-   ============================================================================ */
-
-.context-menu-container {
-  position: fixed;
-  z-index: 99999;
-  pointer-events: auto;
-  cursor: default;
-
-  > .menu-box {
-    display: block;
-  }
-
-  /* Unlike the application menu, a disabled item here is inert: the context
-     menu keeps its selection on the item the pointer last reached, and a
-     disabled row must not take it. */
-  .menu-item.disabled {
-    pointer-events: none;
-  }
-}
-
-/* ============================================================================
-   Submenu portals
-
-   A submenu is drawn out of its parent box so it is not clipped by the
-   parent's own scrolling. JS places each one; these rules only take it out of
-   the flow and keep the container from eating clicks meant for the page.
-   ============================================================================ */
-
-.app-menu-submenu-portal,
-.context-menu-submenu-portal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 99999;
-  pointer-events: none;
-
-  > .menu-box {
-    position: fixed;
-    pointer-events: auto;
-    visibility: hidden;
-
-    &.visible {
-      visibility: visible;
     }
   }
 }
