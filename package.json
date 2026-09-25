@@ -25,9 +25,6 @@
   "engines": {
     "lumine": "^1.0.0"
   },
-  "backgroundTips": [
-    "{% if platform != 'darwin' %}{% if keys['title-bar:focus-menu'] %}You can put the keyboard into the application menu with {{ 'title-bar:focus-menu' | keystroke }}{% else %}You can put the keyboard into the application menu by tapping Alt, then reach any item by its underlined letter.{% endif %}{% endif %}"
-  ],
   "scripts": {
     "test": "lumine --test spec",
     "lint": "eslint . --max-warnings 0",
@@ -64,6 +61,11 @@
     "title-bar": {
       "versions": {
         "1.0.0": "provideTitleBar"
+      }
+    },
+    "background-tips.provider": {
+      "versions": {
+        "1.0.0": "provideBackgroundTips"
       }
     }
   },
