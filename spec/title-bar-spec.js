@@ -316,6 +316,33 @@ describe("Title Bar package", () => {
     expect(service).toBe(window.titleBar.titleBarView.getControlTiles());
   });
 
+  it("publishes control tiles before the deferred chrome mount", async () => {
+    await lumine.packages.deactivatePackage("title-bar");
+
+    const activation = lumine.packages.activatePackage("title-bar");
+    let service;
+    const subscription = lumine.packages.serviceHub.consume("title-bar", "^1.0.0", (value) => {
+      service = value;
+    });
+
+    expect(service).toBeDefined();
+    if (!service) {
+      subscription.dispose();
+      await activation;
+      return;
+    }
+
+    const button = document.createElement("title-bar-tile");
+    const tile = service.addItem({ item: button, priority: 10 });
+    expect(button.isConnected).toBe(false);
+
+    await activation;
+
+    expect(workspaceElement.querySelector(".title-bar .control-tiles title-bar-tile")).toBe(button);
+    tile.destroy();
+    subscription.dispose();
+  });
+
   describe("macOS chrome", () => {
     let originalSetSheetOffset;
     let installedSetSheetOffset;
