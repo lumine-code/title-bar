@@ -44,6 +44,19 @@ describe("Title Bar package", () => {
     }
   });
 
+  it("names the app icon for accessibility without attaching a tooltip", () => {
+    const addTooltip = spyOn(lumine.tooltips, "add");
+    const chrome = new TitleBarChrome({
+      controller: { getState: async () => ({}) },
+      onDidActivateAppIcon() {},
+      appIconLabel: "Lumine",
+    });
+
+    expect(chrome.appIcon.getAttribute("aria-label")).toBe("Lumine");
+    expect(addTooltip).not.toHaveBeenCalled();
+    chrome.destroy();
+  });
+
   it("has no menu-backend or native-title-bar configuration", () => {
     expect(Object.keys(manifest.configSchema)).toEqual([
       "controlTheme",
