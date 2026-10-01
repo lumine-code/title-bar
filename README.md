@@ -8,7 +8,7 @@ Theme-aware custom title bar with integrated menu.
 - **Control themes**: offers Windows 11, macOS Tahoe, and GNOME window controls, with default resolving to the platform theme.
 - **Theme-aware colors**: derives colors from the Lumine UI variables.
 - **Keyboard menu**: hosts core's HTML application menu on Windows and Linux, activated by tapping Alt; macOS keeps its system Application Menu.
-- **Auto-hidden menu bar**: optionally hides the Windows/Linux menu bar until revealed.
+- **Auto-hidden menu bar**: optionally hides the Windows/Linux menu bar until revealed, allowing its area to drag the window while hidden.
 - **Tile host**: lets other packages add controls near the window buttons through a service.
 
 ## Installation

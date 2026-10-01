@@ -276,8 +276,8 @@
   }
 
   .title-bar-menu-bar {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
+    -webkit-app-region: drag;
+    app-region: drag;
     display: flex;
     align-items: center;
     box-sizing: border-box;
@@ -287,6 +287,11 @@
     flex: 0 1 auto;
     min-width: 0;
     z-index: 2;
+
+    &:not(.no-menu-bar) {
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
 
     > .menu-label {
       padding-top: 4px;
