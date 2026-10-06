@@ -14,12 +14,12 @@
   --title-bar-icon-size: 24px;
   --title-bar-icon-margin: 8px;
 
-  /* Type. --font-family is the theme's UI font, which resolves to the
+  /* Type. --ui-font-family is the theme's UI font, which resolves to the
      platform's own on each of the three. */
-  --title-bar-font-family: var(--font-family);
+  --title-bar-font-family: var(--ui-font-family);
 
   /* Title */
-  --title-bar-title-font-size: var(--font-size);
+  --title-bar-title-font-size: var(--ui-font-size);
   --title-bar-title-gap: 8px;
 
   /* Transitions */
