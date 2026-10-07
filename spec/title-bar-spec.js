@@ -272,6 +272,58 @@ describe("Title Bar package", () => {
     expect(layout).toHaveBeenCalledWith(192);
   });
 
+  it("reflows the menu on user-style gap additions, updates and removal without a theme switch", async () => {
+    if (process.platform === "darwin") return;
+    const view = window.titleBar.titleBarView;
+    const menuBar = view.getMenuBar();
+    jasmine.attachToDOM(workspaceElement);
+    spyOn(menuBar.element, "getBoundingClientRect").and.returnValue({
+      left: 40,
+      top: 0,
+      right: 700,
+      bottom: 32,
+    });
+    spyOn(view.titleElement, "getBoundingClientRect").and.returnValue({
+      left: 360,
+      top: 0,
+      right: 440,
+      bottom: 32,
+    });
+    spyOn(view.getThemeManager(), "isMenuOnTrailingEdge").and.returnValue(false);
+    const layout = spyOn(menuBar, "layout");
+    const previousFontSize = view.element.style.fontSize;
+    view.element.style.fontSize = "20px";
+    const themeSwitch = jasmine.createSpy("theme switch");
+    const subscription = lumine.themes.onDidChangeActiveThemes(themeSwitch);
+    let stylesheet;
+    const hasWidth = (width) => layout.calls.mostRecent()?.args[0] === width;
+    try {
+      view.layout();
+      expect(hasWidth(312)).toBe(true);
+      layout.calls.reset();
+      stylesheet = lumine.styles.addStyleSheet(
+        ".title-bar { --title-bar-title-gap: calc(1em + 4px); }",
+        { sourcePath: "title-bar-gap-spec", priority: 2 },
+      );
+      await waitForFrames(() => hasWidth(296), { description: "gap addition updates menu width" });
+      layout.calls.reset();
+      lumine.styles.addStyleSheet(".title-bar { --title-bar-title-gap: 2em; }", {
+        sourcePath: "title-bar-gap-spec",
+        priority: 2,
+      });
+      await waitForFrames(() => hasWidth(280), { description: "gap update updates menu width" });
+      layout.calls.reset();
+      stylesheet.dispose();
+      stylesheet = null;
+      await waitForFrames(() => hasWidth(312), { description: "gap removal restores menu width" });
+      expect(themeSwitch).not.toHaveBeenCalled();
+    } finally {
+      stylesheet?.dispose();
+      subscription.dispose();
+      view.element.style.fontSize = previousFontSize;
+    }
+  });
+
   it("sets intrinsic logo dimensions before styles load", () => {
     const logo = workspaceElement.querySelector(".title-bar .app-icon img");
 
