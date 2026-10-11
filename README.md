@@ -23,6 +23,8 @@ Commands available in `lumine-workspace`:
 - `title-bar:focus-menu`: focus the first menu label for keyboard navigation on Windows/Linux,
 - `window:toggle-menu-bar`: toggle automatic menu-bar hiding on Windows/Linux.
 
+The title bar keeps its manually chosen visibility when window state or focus is refreshed.
+
 ## Services
 
 - [`title-bar`](docs/title-bar.md): provided to let other packages add control tiles to the title bar near the window buttons.
