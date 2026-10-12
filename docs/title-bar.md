@@ -2,12 +2,12 @@
 
 Window-local controls with one workspace registration and a separate DOM instance per editor window.
 
-| | |
-| --- | --- |
-| Version | `2.0.0` |
-| Provided by | `provideTitleBar()` |
+|             |                             |
+| ----------- | --------------------------- |
+| Version     | `2.0.0`                     |
+| Provided by | `provideTitleBar()`         |
 | Consumed by | `consumeTitleBar(titleBar)` |
-| Owner | `title-bar` |
+| Owner       | `title-bar`                 |
 
 ## Registration
 
@@ -35,7 +35,7 @@ type TitleBar = {
   }): Disposable;
   observeWindows(
     create: (bar: ScopedTitleBar, context: WindowContext) => Disposable,
-    options?: { windows?: "main" | "all" }
+    options?: { windows?: "main" | "all" },
   ): Disposable;
   forWindow(window: EditorWindow): ScopedTitleBar;
   getTiles(window?: EditorWindow): Tile[];

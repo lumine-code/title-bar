@@ -56,4 +56,21 @@ describe("Title bar window contributions", () => {
     await lumine.packages.activatePackage("title-bar");
     expect(() => service.addItem({ create: () => ({}) })).toThrowError(/disposed/);
   });
+  it("uses the session launch color in every physical window", async () => {
+    const dev = spyOn(lumine.window, "isDevMode").and.returnValue(false);
+    const safe = spyOn(lumine.window, "isSafeMode").and.returnValue(false);
+    for (const [devMode, safeMode, file] of [
+      [false, false, "lumine.svg"],
+      [true, false, "lumine-dev.svg"],
+      [true, true, "lumine-safe.svg"],
+    ]) {
+      dev.and.returnValue(devMode);
+      safe.and.returnValue(safeMode);
+      const extra = await lumine.workspace.openEditorWindow({ show: false });
+      const logo = extra.getElement().querySelector(".app-icon img");
+      expect(logo.src.endsWith(`/resources/app-icons/${file}`)).toBeTrue();
+      await conditionPromise(() => logo.complete);
+      expect(logo.naturalWidth).toBe(128);
+    }
+  });
 });
