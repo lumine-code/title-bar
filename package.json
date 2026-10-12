@@ -60,7 +60,7 @@
   "providedServices": {
     "title-bar": {
       "versions": {
-        "1.0.0": "provideTitleBar"
+        "2.0.0": "provideTitleBar"
       }
     },
     "background-tips.provider": {

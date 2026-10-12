@@ -1,66 +1,70 @@
 # title-bar
 
-The title bar's control tile collection: a package inserts an element beside the window buttons and receives a handle that removes it.
+Window-local controls with one workspace registration and a separate DOM instance per editor window.
 
-|             |                                                           |
-| ----------- | --------------------------------------------------------- |
-| Version     | `1.0.0`                                                   |
-| Provided by | `provideTitleBar()` returning the control tile collection |
-| Consumed by | `consumeTitleBar(titleBar)`                               |
-| Owner       | `title-bar` (bundled)                                     |
-
-The same shape as `status-bar`, for the strip at the top of the window rather than the bottom. Reserve it for controls that act on the window itself — layout, presentation, window state — rather than on the file being edited.
+| | |
+| --- | --- |
+| Version | `2.0.0` |
+| Provided by | `provideTitleBar()` |
+| Consumed by | `consumeTitleBar(titleBar)` |
+| Owner | `title-bar` |
 
 ## Registration
 
-In your `package.json`:
-
-```json
-{
-  "consumedServices": {
-    "title-bar": {
-      "versions": { "^1.0.0": "consumeTitleBar" }
-    }
-  }
-}
-```
+Declare `"title-bar": { "versions": { "^2.0.0": "consumeTitleBar" } }` in `consumedServices`.
 
 ## Contract
 
 ```ts
-type TitleBar = {
+type WindowContext = {
+  window: EditorWindow;
+  document: Document;
+  workspace: Workspace;
+  editorContainer: PaneContainer;
+};
+type Tile = { getItem(): HTMLElement; getPriority(): number; destroy(): void };
+type ScopedTitleBar = {
   addItem(options: { item: HTMLElement; priority?: number }): Tile;
   getTiles(): Tile[];
 };
-
-type Tile = {
-  getItem(): HTMLElement;
-  getPriority(): number;
-  destroy(): void;
+type TitleBar = {
+  addItem(options: {
+    create(context: WindowContext): { element: HTMLElement; dispose(): void };
+    windows?: "main" | "all";
+    priority?: number;
+  }): Disposable;
+  observeWindows(
+    create: (bar: ScopedTitleBar, context: WindowContext) => Disposable,
+    options?: { windows?: "main" | "all" }
+  ): Disposable;
+  forWindow(window: EditorWindow): ScopedTitleBar;
+  getTiles(window?: EditorWindow): Tile[];
 };
 ```
 
-| Option     | Description                                                                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `item`     | Required, and an `HTMLElement` — unlike the status bar, this is inserted into the DOM directly rather than through a view registry. |
-| `priority` | Defaults to `0`. Lower sits closer to the outer edge; equal priorities fall back to insertion order.                                |
+`create` is required. `windows` defaults to `"main"`; `"all"` includes current and future windows. Each factory owns a distinct element and subscriptions. Target native operations through `context.window`, and use `context.editorContainer` for the local editing context. Priority defaults to zero; lower priorities sit closer to the outer edge.
 
-`getTiles()` returns a copy of the ordered list, so mutating it does nothing.
+`observeWindows` owns a controller that manages multiple or dynamic local tiles. Its callback returns a disposable owning those tiles and subscriptions. `forWindow` is useful for clients that already own a specific window's lifecycle. Queries default to the main window and return a copy of its ordered collection.
 
 ## Minimal example
 
 ```js
-const { Disposable } = require("lumine");
-
 module.exports = {
   consumeTitleBar(titleBar) {
-    const tile = document.createElement("title-bar-tile");
-    tile.classList.add("my-package-toggle");
-    tile.appendChild(icon("versions"));
-    tile.addEventListener("click", () => this.toggleLayout());
-
-    const handle = titleBar.addItem({ item: tile, priority: 10 });
-    return new Disposable(() => handle.destroy());
+    return titleBar.addItem({
+      windows: "all",
+      priority: 10,
+      create({ document, window }) {
+        const element = document.createElement("title-bar-tile");
+        element.textContent = "□";
+        const click = () => window.maximize();
+        element.addEventListener("click", click);
+        return {
+          element,
+          dispose: () => element.removeEventListener("click", click),
+        };
+      },
+    });
   },
 };
 ```
@@ -93,12 +97,14 @@ Tiles are inserted in priority order at the moment they are added, so a later ti
 
 There are few consumers, so no priority band scheme has been established. Keep numbers small and leave gaps.
 
+Additional editor windows include an intrinsic pin control that invokes `workspace.attachWindow(window)`. It reattaches the complete split layout to the main window. Contributions should not duplicate that control.
+
 ## Teardown
 
-Keep the returned tile and `destroy()` it. As with the status bar, removing only the element leaves the tile in the ordered collection and the next insertion positioned against a detached node.
+Dispose the workspace registration to release all instances and prevent future creation. Scoped controllers keep their returned tiles and call `destroy()` on them. As with the status bar, removing only the element leaves the tile in the ordered collection and the next insertion positioned against a detached node.
 
 Destroying the title bar destroys every tile it holds, so a tile disposed after that is disposed twice. That is expected and the second call does nothing — your teardown does not have to guard against it.
 
 ## Versioning
 
-`1.0.0` provided, `^1.0.0` consumed. A change that breaks this shape gets a new service name rather than a new major version, and both sides move in the same release.
+`2.0.0` replaces direct global insertion with window factories. Consumers request `^2.0.0`; the provider and consumers move together.

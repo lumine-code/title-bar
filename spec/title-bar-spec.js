@@ -376,7 +376,7 @@ describe("Title Bar package", () => {
   });
 
   it("provides the control-tile collection", () => {
-    const service = pack.mainModule.provideTitleBar();
+    const service = pack.mainModule.provideTitleBar().forWindow(lumine.workspace.getMainWindow());
 
     expect(service).toBe(window.titleBar.titleBarView.getControlTiles());
   });
@@ -386,8 +386,8 @@ describe("Title Bar package", () => {
 
     const activation = lumine.packages.activatePackage("title-bar");
     let service;
-    const subscription = lumine.packages.serviceHub.consume("title-bar", "^1.0.0", (value) => {
-      service = value;
+    const subscription = lumine.packages.serviceHub.consume("title-bar", "^2.0.0", (value) => {
+      service = value.forWindow(lumine.workspace.getMainWindow());
     });
 
     expect(service).toBeDefined();

@@ -415,6 +415,25 @@ body.is-blurred {
   }
 }
 
+.title-bar .attach-window button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 /** Windows 11 style */
 .title-bar.theme-windows-11 {
   .window-buttons button:not(.btn-close) {
