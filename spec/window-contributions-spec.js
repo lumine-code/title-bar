@@ -54,8 +54,11 @@ describe("Title bar window contributions", () => {
       .elementFromPoint((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
     expect(target.closest(".app-icon")).toBe(logo);
     expect(getComputedStyle(logo).getPropertyValue("-webkit-app-region")).toBe("no-drag");
+    const attach = spyOn(workspace, "attachWindow").and.callThrough();
     target.click();
-    await conditionPromise(() => !workspace.getWindows().includes(extra));
+    expect(attach).toHaveBeenCalledOnceWith(extra);
+    await attach.calls.mostRecent().returnValue;
+    expect(workspace.getWindows()).not.toContain(extra);
     expect(workspace.paneForItem(editor)).toBe(pane);
     expect(workspace.getMainWindow().getEditorContainer().getPanes()).toContain(pane);
     expect(editor.getText()).toBe("Logo reattachment");
