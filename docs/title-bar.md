@@ -97,7 +97,7 @@ Tiles are inserted in priority order at the moment they are added, so a later ti
 
 There are few consumers, so no priority band scheme has been established. Keep numbers small and leave gaps.
 
-Additional editor windows include an intrinsic pin control that invokes `workspace.attachWindow(window)`. It reattaches the complete split layout to the main window. Contributions should not duplicate that control.
+Clicking the Lumine logo in an additional editor window invokes `workspace.attachWindow(window)` and reattaches its complete split layout to the main window. The logo also supports Enter and Space. In the main window, it opens About.
 
 ## Teardown
 
