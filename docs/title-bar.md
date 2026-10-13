@@ -83,6 +83,8 @@ The same shape as a status-bar tile, for the strip at the top of the window. Fol
 
 **One tile is one control**, and the click binds to the tile itself. **A control tile is a glyph, not a label** — reserve it for controls that act on the window: layout, presentation, window state.
 
+Every interactive tile supplies a context menu containing all its actions, including the primary left click and any middle click or modifier shortcuts. Right click only opens that menu. Set `data-context-menu-boundary` on a tile that owns its menu, register its commands on the workspace, and resolve the invoking window from the command context. Add `mouseBindingLabel` to each menu item with a mouse shortcut; the menu also keeps the command's keyboard hint. Tooltips use plain text describing the current state and primary left-click action, without gesture lists or command hints. Dispose menu registrations with the tile's window contribution.
+
 **The bar stamps `.title-bar-item` on what it hosts** and removes it again on destroy. That is what a theme keys its size, rounding and hover feedback on, so your tile needs no styling of its own to sit alongside the window controls. Never write that class yourself, and never use `.inline-block` to stand in for it — that is a layout utility, useful _inside_ a tile, saying nothing about where one starts.
 
 Related controls that travel together go in a `<title-bar-tile-group>`, handed to `addItem` in place of a tile. The group is a layout box and never a tile itself: the bar marks its `<title-bar-tile>` children instead, so a theme paints one rectangle per control rather than one across the group.
