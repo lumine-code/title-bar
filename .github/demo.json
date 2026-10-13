@@ -1,0 +1,16 @@
+{
+  "title": "title-bar",
+  "description": "Use the editor title bar and application menu with an open project.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "8df86a1fd750d614b5b83f902c7444fd3c24ef53",
+  "mode": "normal",
+  "fontSettings": "default",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "Use the editor title bar and application menu with an open project.",
+      "width": 1200,
+      "height": 760
+    }
+  ]
+}

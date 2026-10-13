@@ -11,6 +11,8 @@ Theme-aware custom title bar with integrated menu.
 - **Auto-hidden menu bar**: optionally hides the Windows/Linux menu bar until revealed, allowing its area to drag the window while hidden.
 - **Tile host**: lets other packages add controls near the window buttons through a service.
 
+![Use the editor title bar and application menu with an open project.](.github/demo.png)
+
 ## Installation
 
 To install `title-bar` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/title-bar`.
