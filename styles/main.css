@@ -477,3 +477,11 @@ body.is-blurred {
     }
   }
 }
+
+/* Respect reduced motion while retaining visible status indicators. */
+@media (prefers-reduced-motion: reduce) {
+  .title-bar {
+    --title-bar-transition-normal: 0s;
+    --title-bar-transition-slow: 0s;
+  }
+}
