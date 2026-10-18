@@ -3,7 +3,9 @@ module.exports = {
   version: 1,
   dependencies: ["language-javascript", "tree-view"],
   viewport: { width: 1200, height: 760 },
-  async before() {},
+  async before({ lumine }) {
+    lumine.config.set("title-bar.autoHide", false);
+  },
   async prepare(context) {
     const { lumine, state, fixture, open } = context;
     state.editor = await open("Signal Lab/src/signal.js");
