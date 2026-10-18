@@ -111,6 +111,10 @@ describe("Title Bar package", () => {
           [edgeX, 0],
           [edgeX, Math.floor((iconRect.top + iconRect.bottom) / 2)],
           [Math.floor((iconRect.left + iconRect.right) / 2), 0],
+          [
+            trailing ? Math.floor(iconRect.left) : Math.ceil(iconRect.right) - 1,
+            Math.floor((iconRect.top + iconRect.bottom) / 2),
+          ],
         ];
         for (const [x, y] of iconPoints) {
           const target = document.elementFromPoint(x, y);
@@ -140,6 +144,10 @@ describe("Title Bar package", () => {
           8,
         );
         expect(imageRect.width).toBe(24);
+        const menuRect = menuBar.element.getBoundingClientRect();
+        expect(trailing ? imageRect.left - menuRect.right : menuRect.left - imageRect.right).toBe(
+          8,
+        );
         expect(getComputedStyle(view.appIcon).getPropertyValue("-webkit-app-region")).toBe(
           "no-drag",
         );

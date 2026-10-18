@@ -80,15 +80,15 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    /* Keep the logo inset while its click target reaches the window edge. */
+    /* Keep space around the logo inside its edge-to-edge click target. */
     width: calc(
-      min(var(--title-bar-icon-size), calc(var(--title-bar-height) - 8px)) +
+      min(var(--title-bar-icon-size), calc(var(--title-bar-height) - 8px)) + 2 *
         var(--title-bar-icon-margin)
     );
     height: calc(100% + 4px);
     margin-top: -4px;
     padding-top: 4px;
-    padding-left: var(--title-bar-icon-margin);
+    padding-inline: var(--title-bar-icon-margin);
     order: 0;
     flex-shrink: 0;
     z-index: 1;
@@ -403,8 +403,6 @@
   /* The logo and menu move to the trailing edge with reversed controls. */
   .app-icon {
     order: 10;
-    padding-left: 0;
-    padding-right: var(--title-bar-icon-margin);
   }
 
   .title-bar-menu-bar {
