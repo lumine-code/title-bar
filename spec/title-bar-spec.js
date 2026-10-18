@@ -86,50 +86,75 @@ describe("Title Bar package", () => {
     }
   });
 
-  it("keeps the app icon and application-menu labels hit-testable at the top edge", () => {
-    const config = new Config();
-    config.autoHide = false;
-    const view = new TitleBarView(config, { platform: "win32" });
-    Object.assign(view.element.style, {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: "800px",
-      zIndex: "2147483647",
+  for (const controlTheme of ["Windows 11", "GNOME", "macOS Tahoe"]) {
+    it(`keeps the logo clickable at the ${controlTheme} window corner and menu at the top edge`, () => {
+      const config = new Config();
+      config.autoHide = false;
+      config.windowControlTheme = controlTheme;
+      const view = new TitleBarView(config, { platform: "win32" });
+      Object.assign(view.element.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "800px",
+        zIndex: "2147483647",
+      });
+      jasmine.attachToDOM(view.element);
+      const menuBar = view.getMenuBar();
+
+      try {
+        const iconRect = view.appIcon.getBoundingClientRect();
+        const trailing = controlTheme === "macOS Tahoe";
+        const edgeX = trailing ? 799 : 0;
+        const dispatch = spyOn(lumine.commands, "dispatch").and.returnValue(true);
+        const iconPoints = [
+          [edgeX, 0],
+          [edgeX, Math.floor((iconRect.top + iconRect.bottom) / 2)],
+          [Math.floor((iconRect.left + iconRect.right) / 2), 0],
+        ];
+        for (const [x, y] of iconPoints) {
+          const target = document.elementFromPoint(x, y);
+          expect(target?.closest?.(".app-icon")).toBe(view.appIcon);
+          target.click();
+        }
+        expect(dispatch.calls.allArgs()).toEqual(
+          iconPoints.map(() => [lumine.workspace.getElement(), "application:about"]),
+        );
+        const labels = Array.from(
+          menuBar.element.querySelectorAll(
+            ".menu-label:not(.overflow-menu-label):not(.overflowed)",
+          ),
+        );
+        expect(labels.length).toBeGreaterThan(1);
+        const secondRect = labels[1].getBoundingClientRect();
+        const edgeTarget = document.elementFromPoint(
+          Math.floor((secondRect.left + secondRect.right) / 2),
+          0,
+        );
+        const edgeLabel = edgeTarget?.closest?.(".menu-label");
+
+        expect(iconRect.top).toBe(0);
+        expect(trailing ? iconRect.right : iconRect.left).toBe(trailing ? 800 : 0);
+        const imageRect = view.appIcon.querySelector("img").getBoundingClientRect();
+        expect(trailing ? iconRect.right - imageRect.right : imageRect.left - iconRect.left).toBe(
+          8,
+        );
+        expect(imageRect.width).toBe(24);
+        expect(getComputedStyle(view.appIcon).getPropertyValue("-webkit-app-region")).toBe(
+          "no-drag",
+        );
+        expect(secondRect.top).toBe(0);
+        expect(edgeLabel).toBe(labels[1]);
+
+        labels[0].click();
+        edgeLabel.dispatchEvent(new MouseEvent("mouseenter"));
+        expect(menuBar.activeButton.element).toBe(labels[1]);
+      } finally {
+        menuBar.blur();
+        view.deactivate();
+      }
     });
-    jasmine.attachToDOM(view.element);
-    const menuBar = view.getMenuBar();
-
-    try {
-      const iconRect = view.appIcon.getBoundingClientRect();
-      const iconTarget = document.elementFromPoint(
-        Math.floor((iconRect.left + iconRect.right) / 2),
-        0,
-      );
-      const labels = Array.from(
-        menuBar.element.querySelectorAll(".menu-label:not(.overflow-menu-label):not(.overflowed)"),
-      );
-      expect(labels.length).toBeGreaterThan(1);
-      const secondRect = labels[1].getBoundingClientRect();
-      const edgeTarget = document.elementFromPoint(
-        Math.floor((secondRect.left + secondRect.right) / 2),
-        0,
-      );
-      const edgeLabel = edgeTarget?.closest?.(".menu-label");
-
-      expect(iconRect.top).toBe(0);
-      expect(iconTarget?.closest?.(".app-icon")).toBe(view.appIcon);
-      expect(secondRect.top).toBe(0);
-      expect(edgeLabel).toBe(labels[1]);
-
-      labels[0].click();
-      edgeLabel.dispatchEvent(new MouseEvent("mouseenter"));
-      expect(menuBar.activeButton.element).toBe(labels[1]);
-    } finally {
-      menuBar.blur();
-      view.deactivate();
-    }
-  });
+  }
 
   it("keeps visually inset control tiles hit-testable at the top window edge", () => {
     const view = new TitleBarView(new Config(), { platform: "win32" });
