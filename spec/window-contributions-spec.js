@@ -32,6 +32,7 @@ describe("Title bar window contributions", () => {
     const attach = spyOn(workspace, "attachWindow").and.resolveTo(workspace.getMainWindow());
     const logo = first.getElement().querySelector(".app-icon");
     expect(logo.getAttribute("aria-label")).toBe("Attach to Main Window");
+    expect(logo.title).toBe("Attach to Main Window");
     logo.querySelector("img").click();
     expect(attach).toHaveBeenCalledOnceWith(first);
     await workspace.releaseEditorWindow(second);
@@ -87,7 +88,9 @@ describe("Title bar window contributions", () => {
     const workspace = lumine.workspace;
     const dispatch = spyOn(lumine.commands, "dispatch").and.returnValue(true);
     const attach = spyOn(workspace, "attachWindow");
-    workspace.getMainWindow().getElement().querySelector(".app-icon img").click();
+    const logo = workspace.getMainWindow().getElement().querySelector(".app-icon");
+    expect(logo.title).toBe("About");
+    logo.querySelector("img").click();
     expect(dispatch).toHaveBeenCalledOnceWith(
       workspace.getMainWindow().getElement(),
       "application:about",
