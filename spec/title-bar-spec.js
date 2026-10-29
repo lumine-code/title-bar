@@ -30,7 +30,7 @@ describe("Title Bar package", () => {
     expect(titleBar.querySelector(".btn-close")).toExist();
   });
 
-  it("names window buttons for accessibility without attaching tooltips", () => {
+  it("names window buttons for accessibility and uses native captions on Windows", () => {
     const buttons = workspaceElement.querySelectorAll(".title-bar .window-buttons button");
 
     expect(Array.from(buttons, (button) => button.getAttribute("aria-label"))).toEqual([
@@ -38,8 +38,16 @@ describe("Title Bar package", () => {
       "Maximize window",
       "Close window",
     ]);
+    if (process.platform === "win32") {
+      expect(Array.from(buttons, (button) => button.title)).toEqual([
+        "Minimize",
+        "Maximize",
+        "Close",
+      ]);
+    } else {
+      for (const button of buttons) expect(button.hasAttribute("title")).toBe(false);
+    }
     for (const button of buttons) {
-      expect(button.hasAttribute("title")).toBe(false);
       expect(button.hasAttribute("data-original-title")).toBe(false);
     }
   });
