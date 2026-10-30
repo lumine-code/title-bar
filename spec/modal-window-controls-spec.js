@@ -11,6 +11,18 @@ async function pointer(type, element) {
   });
 }
 
+async function hover(element) {
+  const deadline = Date.now() + 3000;
+  do {
+    // Theme and menu layout can still move a control after the first input
+    // event. Re-read its position and wait for native hover to settle.
+    await pointer("mouseMove", element);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (element.matches(":hover")) return;
+  } while (Date.now() < deadline);
+  throw new Error(`Native hover did not reach ${element.getAttribute("aria-label")}`);
+}
+
 describe("Title bar window controls above modal backdrops", () => {
   for (const controlTheme of ["Default", "Windows 11", "macOS Tahoe", "GNOME"]) {
     it(`keeps ${controlTheme} controls clickable and highlighted without dismissing the modal`, async () => {
@@ -51,8 +63,7 @@ describe("Title bar window controls above modal backdrops", () => {
             const target = document.elementFromPoint(Math.floor(rect.left + rect.width / 2), y);
             expect(target?.closest("[data-window-control]")).toBe(button);
           }
-          await pointer("mouseMove", button);
-          await new Promise((resolve) => setTimeout(resolve, 180));
+          await hover(button);
           expect(button.matches(":hover")).toBe(true);
           const color = chrome.element.classList.contains("theme-macos-tahoe")
             ? getComputedStyle(button, "::before").backgroundColor
