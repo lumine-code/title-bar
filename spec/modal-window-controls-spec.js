@@ -20,7 +20,8 @@ describe("Title bar window controls above modal backdrops", () => {
       const previousStyle = workspace.getAttribute("style");
       // Exercise the real workspace above the test reporter, preserving the
       // relative layers of the title bar and its modal panel.
-      workspace.style.cssText = "position:fixed;inset:0;z-index:100000";
+      workspace.style.cssText =
+        "position:fixed;inset:0;z-index:100000;--title-bar-transition-normal:0s;--title-bar-transition-slow:0s";
       await lumine.packages.activatePackage("one-theme");
       await lumine.packages.activatePackage("one-day-ui");
       await lumine.packages.activatePackage("title-bar");
@@ -54,7 +55,7 @@ describe("Title bar window controls above modal backdrops", () => {
           await new Promise((resolve) => setTimeout(resolve, 180));
           expect(button.matches(":hover")).toBe(true);
           const color =
-            controlTheme === "macOS Tahoe"
+            chrome.element.classList.contains("theme-macos-tahoe")
               ? getComputedStyle(button, "::before").backgroundColor
               : getComputedStyle(button).backgroundColor;
           expect(color).not.toBe("rgba(0, 0, 0, 0)");
