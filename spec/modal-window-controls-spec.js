@@ -54,10 +54,9 @@ describe("Title bar window controls above modal backdrops", () => {
           await pointer("mouseMove", button);
           await new Promise((resolve) => setTimeout(resolve, 180));
           expect(button.matches(":hover")).toBe(true);
-          const color =
-            chrome.element.classList.contains("theme-macos-tahoe")
-              ? getComputedStyle(button, "::before").backgroundColor
-              : getComputedStyle(button).backgroundColor;
+          const color = chrome.element.classList.contains("theme-macos-tahoe")
+            ? getComputedStyle(button, "::before").backgroundColor
+            : getComputedStyle(button).backgroundColor;
           expect(color).not.toBe("rgba(0, 0, 0, 0)");
           await pointer("mouseDown", button);
           await pointer("mouseUp", button);
