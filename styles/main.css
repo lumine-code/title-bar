@@ -65,8 +65,9 @@
   -webkit-user-select: none;
   user-select: none;
   overflow: visible;
-  z-index: 900;
-  contain: layout style;
+  /* Keep the bar out of a stacking context so only the window controls can
+     sit above modal backdrops. The menu, logo and tiles stay below modals. */
+  contain: style;
   font-family: var(--title-bar-font-family);
 
   &.no-title-bar {
@@ -91,7 +92,7 @@
     padding-inline: var(--title-bar-icon-margin);
     order: 0;
     flex-shrink: 0;
-    z-index: 1;
+    z-index: 900;
 
     img {
       display: block;
@@ -127,7 +128,7 @@
     font-weight: 400;
     color: var(--text-color);
     width: max-content;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
   }
 
@@ -153,7 +154,7 @@
     flex-shrink: 1;
     min-width: 0;
     overflow: hidden;
-    z-index: 1;
+    z-index: 900;
 
     &:empty {
       display: none;
@@ -225,7 +226,7 @@
     height: calc(100% + 4px);
     margin-top: -4px;
     order: 3;
-    z-index: 1;
+    z-index: 10001;
     flex-shrink: 0;
 
     button {
@@ -294,7 +295,7 @@
     order: 1;
     flex: 0 1 auto;
     min-width: 0;
-    z-index: 2;
+    z-index: 901;
 
     &:not(.no-menu-bar) {
       -webkit-app-region: no-drag;

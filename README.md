@@ -4,7 +4,7 @@ Theme-aware custom title bar with integrated menu.
 
 ## Features
 
-- **Custom title bar**: owns the title, drag region, window controls, app icon, and control tiles on every frameless window.
+- **Custom title bar**: owns the title, drag region, window controls, app icon, and control tiles on every frameless window; window controls remain available above modal backdrops.
 - **Control themes**: offers Windows 11, macOS Tahoe, and GNOME window controls, with default resolving to the platform theme.
 - **Theme-aware colors**: derives colors from the Lumine UI variables.
 - **Keyboard menu**: hosts core's HTML application menu on Windows and Linux, activated by tapping Alt; macOS keeps its system Application Menu.

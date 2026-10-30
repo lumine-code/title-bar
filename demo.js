@@ -27,6 +27,39 @@ module.exports = {
         return Boolean(document.querySelector(".title-bar"));
       },
     },
+    {
+      id: "modal-window-controls",
+      file: "demo-modal.png",
+      caption: "Keep window controls available above a modal dialog and its blurred backdrop.",
+      async run({ lumine, state, open }) {
+        state.filePicker = lumine.workspace.addSelectList({
+          placeholderText: "Open a Signal Lab file",
+          items: ["src/signal.js", "data/samples.csv", "docs/experiments.md", "README.md"],
+          renderItem: (item) => ({ primary: item }),
+        });
+        state.filePickerConfirmation = state.filePicker
+          .getModel()
+          .onDidConfirmSelection(async ({ item }) => {
+            await open(`Signal Lab/${item}`);
+            state.filePicker.hide();
+          });
+        await state.filePicker.show();
+      },
+      ready({ state }) {
+        const close = document.querySelector(".title-bar .btn-close");
+        if (!state.filePicker?.isVisible() || !close) return false;
+        const bounds = close.getBoundingClientRect();
+        return (
+          state.filePicker.getModel().getElement().querySelectorAll("li").length === 4 &&
+          document
+            .elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+            ?.closest(".btn-close") === close
+        );
+      },
+    },
   ],
-  async cleanup() {},
+  async cleanup({ state }) {
+    state.filePickerConfirmation?.dispose();
+    await state.filePicker?.destroy();
+  },
 };
