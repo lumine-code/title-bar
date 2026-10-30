@@ -1,18 +1,18 @@
 {
   "title": "title-bar",
   "description": "Use the editor title bar and application menu with an open project.",
-  "recordedOn": "2026-10-18",
-  "sourceRevision": "c079942260495873f73fc9a8f98de41a698fd096",
-  "themeSourceRevision": "45b22049e87256e9327beb0b350e67fe81d7fc81",
+  "recordedOn": "2026-10-30",
+  "sourceRevision": "0fc75cc07775486c6f9c77870c7a8a655588e701",
+  "themeSourceRevision": "543b6786cc6eed20334c381eb322fc06e00a67b0",
   "mode": "normal",
   "fontSettings": "default",
   "scenario": "demo.js",
-  "recipeHash": "2f0a3ef6f6eadc635977a7807044e211e21df18db1cb9a250cd381c10b2a5978",
+  "recipeHash": "f95596a4937f5cf75653ee2d4c079df06a4915553ad0025d07a1feaf78825cdb",
   "environment": {
     "platform": "win32",
     "arch": "x64",
-    "electron": "44.9.0",
-    "chrome": "152.0.7977.167",
+    "electron": "45.0.0",
+    "chrome": "156.0.8078.48",
     "devicePixelRatio": 1,
     "locale": "en-GB",
     "fontFamily": "Fira Code, Menlo, DejaVu Sans Mono, Consolas, monospace",
@@ -24,34 +24,34 @@
   "privacy": { "version": 1, "location": "neutral", "textChecked": true },
   "sources": {
     "editor": {
-      "revision": "c952f46dd8fef2d456441a52fc77352d5dc247d2",
+      "revision": "72b70d9e258605e078685f3a1af476bb3e22be4e",
       "dirty": false,
       "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "package": {
-      "revision": "c079942260495873f73fc9a8f98de41a698fd096",
+      "revision": "0fc75cc07775486c6f9c77870c7a8a655588e701",
       "dirty": false,
       "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "title-bar": {
-      "revision": "c079942260495873f73fc9a8f98de41a698fd096",
+      "revision": "0fc75cc07775486c6f9c77870c7a8a655588e701",
       "dirty": false,
       "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "language-javascript": {
-      "revision": "721d40ef20e4ffda4125b375f50c908541fa7c08",
+      "revision": "bf635d04bbf9cf42239552df5455644c59b64b06",
       "dirty": false,
       "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "one-theme": {
-      "revision": "45b22049e87256e9327beb0b350e67fe81d7fc81",
+      "revision": "543b6786cc6eed20334c381eb322fc06e00a67b0",
       "dirty": false,
       "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "tree-view": {
-      "revision": "c1781b2f9680b1079e9c583431aed03e5b0992a3",
-      "dirty": false,
-      "workingTreeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      "revision": "968cf8e9ddd41efecb09474c0a108d476f7ae33e",
+      "dirty": true,
+      "workingTreeHash": "feefdff8db86031c0ce31f6d085f9c0afae312a702e5e16b169a971b47a6366c"
     }
   },
   "fixtures": [
@@ -82,7 +82,14 @@
       "label": "Use the editor title bar and application menu with an open project.",
       "width": 1200,
       "height": 760,
-      "sha256": "82cf5a84b06bab9ff0b8f07fdebab6eda90ed15c1f1d387ce2867c48c64f40f8"
+      "sha256": "a193b03951e278f04fd5dfe244d95909ae7e763af60f8ab66a034730037dd3b2"
+    },
+    {
+      "file": "demo-modal.png",
+      "label": "Keep window controls available above a modal dialog and its blurred backdrop.",
+      "width": 1200,
+      "height": 760,
+      "sha256": "0fe2fe9c07f7d30a0649bd5ab785b1a1394c1d6dad3ecc0c5abc1907050be044"
     }
   ]
 }
