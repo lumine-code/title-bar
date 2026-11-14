@@ -99,6 +99,10 @@ The package owns the window chrome on every platform. On Windows and Linux it al
 
 Tiles are inserted in priority order at the moment they are added, so a later tile still lands in the right place.
 
+When the control strip would overlap the centered title, the entire strip collapses into an ellipsis button beside the window controls. Opening it reveals the original controls in the same title-bar row and fades the title until the strip closes. It scrolls horizontally if the window cannot fit the full strip, preserving the logo, application menu and window controls. Clicking outside, pressing Escape or leaving the window closes it; menus opened by a tile remain usable and handle Escape first.
+
+Standard `<title-bar-tile>` controls without existing interactive content, roles or focus handling receive button semantics and Enter/Space activation automatically. Native controls and custom interactive content keep their own behavior.
+
 There are few consumers, so no priority band scheme has been established. Keep numbers small and leave gaps.
 
 Clicking the Lumine logo in an additional editor window invokes `workspace.attachWindow(window)` and reattaches its complete split layout to the main window. The logo also supports Enter and Space. In the main window, it opens About.

@@ -128,8 +128,12 @@
     font-weight: 400;
     color: var(--text-color);
     width: max-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     z-index: 0;
     pointer-events: none;
+    transition: opacity var(--title-bar-transition-slow) ease;
   }
 
   /* The visible bar sits four pixels below the window top, but the control row
@@ -481,6 +485,133 @@ body.is-blurred {
       &.btn-maximize {
         order: 2;
       }
+    }
+  }
+}
+
+/* Keep package-owned controls in one measurable strip. The flex slot reserves
+   only the toggle when collapsed; its viewport opens over the centered title
+   without moving the logo, menu or native window buttons. */
+.title-bar {
+  .control-tiles-slot {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    order: 2;
+    height: calc(100% + 4px);
+    margin-top: -4px;
+    margin-left: auto;
+    margin-right: 12px;
+    z-index: 902;
+
+    &:has(.control-tiles:empty) {
+      display: none;
+    }
+  }
+
+  .control-tiles-slot:has(.control-tiles:empty) + .window-buttons {
+    margin-left: auto;
+  }
+
+  .control-tiles-viewport {
+    display: block;
+    flex: 0 0 auto;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .control-tiles-slot > .control-tiles-viewport > .control-tiles {
+    flex: 0 0 auto;
+    width: max-content;
+    height: 100%;
+    margin: 0;
+
+    > * {
+      flex-shrink: 0;
+    }
+  }
+
+  .control-tiles-toggle {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 100%;
+    padding: 4px 0 0;
+    border: none;
+    background: var(--app-background-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 20px;
+    line-height: 1;
+    cursor: default;
+    z-index: 1;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &:hover,
+    &[aria-expanded="true"] {
+      background: color-mix(in srgb, var(--app-background-color), var(--text-color) 10%);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--text-color-highlight);
+      outline-offset: -3px;
+    }
+  }
+
+  &.controls-collapsed .control-tiles-viewport {
+    position: absolute;
+    top: 0;
+    right: 100%;
+    width: 0;
+    background: var(--app-background-color);
+    visibility: hidden;
+    transition:
+      width var(--title-bar-transition-slow) ease,
+      visibility 0s var(--title-bar-transition-slow);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &.controls-expanded {
+    > .custom-title {
+      opacity: 0;
+    }
+
+    .control-tiles-viewport {
+      width: var(--control-tiles-expanded-width, 0px);
+      overflow-x: auto;
+      visibility: visible;
+      transition-delay: 0s;
+    }
+  }
+
+  &.reverse-controls,
+  &.theme-macos-tahoe {
+    .control-tiles-slot {
+      order: 1;
+      margin-left: 12px;
+      margin-right: auto;
+    }
+
+    .control-tiles-slot:has(.control-tiles:empty) + .window-buttons {
+      margin-left: 0;
+      margin-right: auto;
+    }
+
+    &.controls-collapsed .control-tiles-viewport {
+      right: auto;
+      left: 100%;
     }
   }
 }

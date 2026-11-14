@@ -10,6 +10,7 @@ Theme-aware custom title bar with integrated menu.
 - **Keyboard menu**: hosts core's HTML application menu on Windows and Linux, activated by tapping Alt; macOS keeps its system Application Menu.
 - **Auto-hidden menu bar**: optionally hides the Windows/Linux menu bar until revealed, allowing its area to drag the window while hidden.
 - **Tile host**: lets other packages add controls near the window buttons through a service.
+- **Collapsible controls**: folds crowded controls into one button and expands them over the title in the same row.
 
 ![Use the editor title bar and application menu with an open project.](.github/demo.png)
 

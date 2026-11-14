@@ -1,8 +1,8 @@
 // Authentic package usage. Run with lumine/script/demo.js; fixtures stay in demo/.
 module.exports = {
   version: 1,
-  dependencies: ["language-javascript", "tree-view"],
-  viewport: { width: 1200, height: 760 },
+  dependencies: ["language-javascript", "tree-view", "quick-layout"],
+  viewport: { width: 820, height: 760 },
   async before({ lumine }) {
     lumine.config.set("title-bar.autoHide", false);
   },
@@ -54,6 +54,44 @@ module.exports = {
           document
             .elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
             ?.closest(".btn-close") === close
+        );
+      },
+    },
+    {
+      id: "collapsed-controls",
+      file: "demo-controls-collapsed.png",
+      caption: "Keep the title readable by collapsing crowded window controls into one button.",
+      async run({ state, waitFor }) {
+        state.filePicker.hide();
+        await waitFor(
+          () => document.querySelector(".title-bar.controls-collapsed .control-tiles-toggle"),
+          "the layout controls collapse beside the title",
+        );
+      },
+      ready() {
+        const button = document.querySelector(".title-bar .control-tiles-toggle");
+        return Boolean(
+          button && !button.hidden && button.getAttribute("aria-expanded") === "false",
+        );
+      },
+    },
+    {
+      id: "expanded-controls",
+      file: "demo-controls-expanded.png",
+      caption: "Expand the original layout controls over the title without leaving the title bar.",
+      run() {
+        document.querySelector(".title-bar .control-tiles-toggle").click();
+      },
+      ready() {
+        const bar = document.querySelector(".title-bar.controls-expanded");
+        if (!bar) return false;
+        const viewport = bar.querySelector(".control-tiles-viewport");
+        const title = bar.querySelector(".custom-title");
+        const tile = bar.querySelector(".quick-layout");
+        return (
+          viewport.clientWidth > 0 &&
+          Number(getComputedStyle(title).opacity) === 0 &&
+          Number(getComputedStyle(tile).opacity) === 1
         );
       },
     },
