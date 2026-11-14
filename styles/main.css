@@ -74,6 +74,10 @@
     display: none;
   }
 
+  &.is-fullscreen .window-buttons {
+    display: none;
+  }
+
   .app-icon {
     -webkit-app-region: no-drag;
     app-region: no-drag;
