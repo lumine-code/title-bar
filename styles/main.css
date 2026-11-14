@@ -546,7 +546,6 @@ body.is-blurred {
     background: var(--app-background-color);
     color: var(--text-color);
     font: inherit;
-    font-size: 20px;
     line-height: 1;
     cursor: default;
     z-index: 1;

@@ -58,29 +58,21 @@ module.exports = {
       },
     },
     {
-      id: "collapsed-controls",
-      file: "demo-controls-collapsed.png",
-      caption: "Keep the title readable by collapsing crowded window controls into one button.",
+      id: "expanded-controls",
+      file: "demo-controls-expanded.png",
+      caption: "Expand the original layout controls over the title without leaving the title bar.",
       async run({ state, waitFor }) {
         state.filePicker.hide();
         await waitFor(
           () => document.querySelector(".title-bar.controls-collapsed .control-tiles-toggle"),
           "the layout controls collapse beside the title",
         );
-      },
-      ready() {
-        const button = document.querySelector(".title-bar .control-tiles-toggle");
-        return Boolean(
-          button && !button.hidden && button.getAttribute("aria-expanded") === "false",
-        );
-      },
-    },
-    {
-      id: "expanded-controls",
-      file: "demo-controls-expanded.png",
-      caption: "Expand the original layout controls over the title without leaving the title bar.",
-      run() {
         document.querySelector(".title-bar .control-tiles-toggle").click();
+      },
+      afterPointerMove({ lumine, state }) {
+        lumine.views.getView(state.editor).focus();
+        for (const tooltips of lumine.tooltips.tooltips.values())
+          for (const tooltip of tooltips) tooltip.cancel();
       },
       ready() {
         const bar = document.querySelector(".title-bar.controls-expanded");
