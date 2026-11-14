@@ -21,6 +21,13 @@ async function nativeHover(element) {
   throw new Error(`Native hover did not reach ${element.id || element.className}`);
 }
 
+async function nativeKey(keyCode) {
+  for (const type of ["keyDown", "keyUp"]) {
+    await ipcRenderer.invoke("lumine:window", "sendInputEvent", { type, keyCode });
+  }
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
 describe("Title bar control overflow", () => {
   let view;
   let popup;
@@ -72,6 +79,48 @@ describe("Title bar control overflow", () => {
 
   async function settled(predicate, description) {
     await waitForFrames(predicate, { frames: 120, description });
+  }
+
+  async function withQuickLayout(options, exercise) {
+    const packages = ["one-theme", "one-day-ui", "quick-layout"];
+    const activeBefore = new Set(packages.filter((name) => lumine.packages.isPackageActive(name)));
+    const settings = ["showDockButtons", "showLayoutButtons", "showFullScreenButton"];
+    const values = new Map(
+      settings.map((name) => [name, lumine.config.get(`quick-layout.${name}`)]),
+    );
+    let contribution;
+    const parking = document.createElement("div");
+    parking.style.cssText = "position:fixed;left:0;top:100px;width:20px;height:20px;z-index:100001";
+    jasmine.attachToDOM(parking);
+
+    try {
+      for (const name of packages) await lumine.packages.activatePackage(name);
+      for (const name of settings) lumine.config.set(`quick-layout.${name}`, true);
+      createView(options);
+      if (options.title) view.chrome.setTitle(options.title);
+      const editorWindow = lumine.workspace.getMainWindow();
+      const quickLayout = lumine.packages.getActivePackage("quick-layout").mainModule;
+      contribution = quickLayout.consumeWindowTitleBar(view.getControlTiles(), {
+        window: editorWindow,
+        document,
+        workspace: lumine.workspace,
+        editorContainer: editorWindow.getEditorContainer(),
+      });
+      view.layout();
+      const tile = view.controlTilesElement.querySelector("#quick-layout-toggle-left-dock");
+      expect(tile).toExist();
+      await exercise({ tile, parking, editorWindow });
+    } finally {
+      contribution?.dispose();
+      for (const [name, value] of values) {
+        if (value === undefined) lumine.config.unset(`quick-layout.${name}`);
+        else lumine.config.set(`quick-layout.${name}`, value);
+      }
+      for (const name of packages.toReversed()) {
+        if (!activeBefore.has(name)) await lumine.packages.deactivatePackage(name);
+      }
+      parking.remove();
+    }
   }
 
   for (const [theme, platform] of [
@@ -297,34 +346,9 @@ describe("Title bar control overflow", () => {
   });
 
   it("highlights and clicks real Quick Layout controls through native pointer input", async () => {
-    const packages = ["one-theme", "one-day-ui", "quick-layout"];
-    const activeBefore = new Set(packages.filter((name) => lumine.packages.isPackageActive(name)));
-    const settings = ["showDockButtons", "showLayoutButtons", "showFullScreenButton"];
-    const values = new Map(
-      settings.map((name) => [name, lumine.config.get(`quick-layout.${name}`)]),
-    );
-    let contribution;
-    const parking = document.createElement("div");
-    parking.style.cssText = "position:fixed;left:0;top:100px;width:20px;height:20px;z-index:100001";
-    jasmine.attachToDOM(parking);
-
-    try {
-      for (const name of packages) await lumine.packages.activatePackage(name);
-      for (const name of settings) lumine.config.set(`quick-layout.${name}`, true);
-      createView();
-      const editorWindow = lumine.workspace.getMainWindow();
-      const quickLayout = lumine.packages.getActivePackage("quick-layout").mainModule;
-      contribution = quickLayout.consumeWindowTitleBar(view.getControlTiles(), {
-        window: editorWindow,
-        document,
-        workspace: lumine.workspace,
-        editorContainer: editorWindow.getEditorContainer(),
-      });
-      view.layout();
+    await withQuickLayout({}, async ({ tile, parking, editorWindow }) => {
       expect(view.controlOverflow.collapsed).toBe(true);
       view.controlOverflow.open();
-      const tile = view.controlTilesElement.querySelector("#quick-layout-toggle-left-dock");
-      expect(tile).toExist();
       for (const wrapper of [view.controlOverflow.slot, view.controlOverflow.viewport])
         expect(getComputedStyle(wrapper).getPropertyValue("-webkit-app-region")).toBe("no-drag");
       await settled(
@@ -350,17 +374,102 @@ describe("Title bar control overflow", () => {
       const after = await editorWindow.getState();
       expect(after.position).toEqual(before.position);
       expect(after.size).toEqual(before.size);
-    } finally {
-      contribution?.dispose();
-      for (const [name, value] of values) {
-        if (value === undefined) lumine.config.unset(`quick-layout.${name}`);
-        else lumine.config.set(`quick-layout.${name}`, value);
-      }
-      for (const name of packages.toReversed()) {
-        if (!activeBefore.has(name)) await lumine.packages.deactivatePackage(name);
-      }
-      parking.remove();
+    });
+  });
+
+  it("hides the normal Quick Layout strip after pointer activation without focusing its tiles", async () => {
+    await withQuickLayout({ width: 900, title: "Lab" }, async ({ tile, parking, editorWindow }) => {
+      expect(view.controlOverflow.collapsed).toBe(false);
+      const editor = document.createElement("input");
+      jasmine.attachToDOM(editor);
+      editor.focus();
+      await nativeHover(tile);
+      await settled(
+        () => getComputedStyle(tile).opacity === "1",
+        "the pointer reveals Quick Layout",
+      );
+      const dispatch = spyOn(lumine.commands, "dispatch").and.returnValue(true);
+      await nativePointer("mouseDown", tile);
+      await nativePointer("mouseUp", tile);
+      await nativeHover(parking);
+      expect(document.activeElement).not.toBe(tile);
+      expect(view.controlTilesElement.matches(":focus-within")).toBe(false);
+      expect(view.controlTilesElement.matches(":hover")).toBe(false);
+      await settled(
+        () => getComputedStyle(tile).opacity === "0",
+        "the normal strip hides after the pointer leaves",
+      );
+      expect(
+        dispatch.calls.allArgs().filter((args) => args[1] === "quick-layout:toggle-left-dock"),
+      ).toEqual([[editorWindow.getElement(), "quick-layout:toggle-left-dock"]]);
+    });
+  });
+
+  it("preserves package-owned native controls and explicit keyboard semantics", async () => {
+    createView({ width: 900 });
+    view.chrome.setTitle("Lab");
+    const explicit = document.createElement("title-bar-tile");
+    explicit.tabIndex = 0;
+    explicit.setAttribute("role", "button");
+    explicit.textContent = "Package action";
+    explicit.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      explicit.click();
+    });
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Native action";
+    const controls = [explicit, button];
+    for (const item of controls) view.getControlTiles().addItem({ item });
+    view.layout();
+    expect(view.controlOverflow.collapsed).toBe(false);
+    const click = jasmine.createSpy("package control click");
+    explicit.addEventListener("click", click);
+    explicit.focus();
+    await nativeKey("Enter");
+    await nativeKey(" ");
+    expect(click).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(explicit);
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    view.deactivate();
+    view = null;
+    expect(explicit.getAttribute("role")).toBe("button");
+    expect(explicit.getAttribute("tabindex")).toBe("0");
+    expect(button.hasAttribute("role")).toBe(false);
+    expect(button.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("preserves native pointer focus and activation inside a compound tile", async () => {
+    createView({ width: 900 });
+    view.chrome.setTitle("Lab");
+    const item = document.createElement("title-bar-tile");
+    const input = document.createElement("input");
+    input.style.width = "70px";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Action";
+    // Compound controls paint above the tile's full-height edge hit layer.
+    for (const control of [input, button]) {
+      control.style.position = "relative";
+      control.style.zIndex = "1";
     }
+    item.append(input, button);
+    view.getControlTiles().addItem({ item });
+    view.layout();
+    await settled(() => input.getBoundingClientRect().width > 0, "the compound tile is laid out");
+    expect(view.controlOverflow.collapsed).toBe(false);
+    expect(item.hasAttribute("tabindex")).toBe(false);
+    const click = jasmine.createSpy("native button click");
+    button.addEventListener("click", click);
+    for (const control of [input, button]) {
+      await nativeHover(control);
+      await nativePointer("mouseDown", control);
+      await nativePointer("mouseUp", control);
+      expect(document.activeElement).toBe(control);
+    }
+    expect(click).toHaveBeenCalledTimes(1);
   });
 
   it("keeps a tile's popup usable and lets Escape dismiss the popup first", async () => {
@@ -401,21 +510,34 @@ describe("Title bar control overflow", () => {
     expect(view.controlOverflow.expanded).toBe(false);
   });
 
-  it("makes plain tile controls operable with the keyboard without double activation", async () => {
+  it("leaves plain tiles without added roles or tab stops throughout their lifecycle", async () => {
     createView();
     const tiles = addTiles(10, "title-bar-tile");
-    const tile = tiles[0].getItem();
-    const click = jasmine.createSpy("tile click");
-    tile.addEventListener("click", click);
+    const expectPlain = () => {
+      for (const tile of tiles) {
+        expect(tile.getItem().hasAttribute("role")).toBe(false);
+        expect(tile.getItem().hasAttribute("tabindex")).toBe(false);
+      }
+    };
+    expectPlain();
     view.layout();
     view.controlOverflow.open({ focus: true });
-    await settled(() => tile.tabIndex >= 0, "plain control tiles can receive keyboard focus");
-    tile.focus();
+    await settled(() => view.controlOverflow.expanded, "the strip is revealed");
+    expectPlain();
+    const click = jasmine.createSpy("plain tile click");
+    const item = tiles[0].getItem();
+    item.addEventListener("click", click);
     for (const key of ["Enter", " "]) {
-      tile.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-      tile.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: true, cancelable: true }));
+      item.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
     }
-    expect(click).toHaveBeenCalledTimes(2);
-    expect(view.controlOverflow.expanded).toBe(true);
+    expect(click).not.toHaveBeenCalled();
+    tiles.push(...addTiles(1, "title-bar-tile"));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expectPlain();
+    view.controlOverflow.close();
+    expectPlain();
+    view.deactivate();
+    view = null;
+    expectPlain();
   });
 });
