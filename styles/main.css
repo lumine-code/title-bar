@@ -498,6 +498,8 @@ body.is-blurred {
    without moving the logo, menu or native window buttons. */
 .title-bar {
   .control-tiles-slot {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
     position: relative;
     display: flex;
     flex: 0 0 auto;
@@ -518,6 +520,8 @@ body.is-blurred {
   }
 
   .control-tiles-viewport {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
     display: block;
     flex: 0 0 auto;
     height: 100%;

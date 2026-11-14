@@ -25,6 +25,9 @@
   "engines": {
     "lumine": "^1.0.0"
   },
+  "specPackages": [
+    "quick-layout"
+  ],
   "scripts": {
     "test": "lumine --test spec",
     "lint": "eslint . --max-warnings 0",
