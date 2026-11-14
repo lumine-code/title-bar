@@ -16,6 +16,8 @@ Theme-aware custom title bar with integrated menu.
 
 ![Keep window controls available above a modal dialog and its blurred backdrop.](.github/demo-modal.png)
 
+![Expand the original layout controls over the title without leaving the title bar.](.github/demo-controls-expanded.png)
+
 ## Installation
 
 To install `title-bar` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/title-bar`.
