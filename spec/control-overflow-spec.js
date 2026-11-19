@@ -467,6 +467,10 @@ describe("Title bar control overflow", () => {
       await nativeHover(control);
       await nativePointer("mouseDown", control);
       await nativePointer("mouseUp", control);
+      await settled(
+        () => document.activeElement === control,
+        `native pointer focus reaches the ${control.localName}`,
+      );
       expect(document.activeElement).toBe(control);
     }
     await settled(() => click.calls.count() === 1, "the native button click is delivered");
