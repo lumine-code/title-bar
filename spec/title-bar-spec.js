@@ -33,6 +33,9 @@ describe("Title Bar package", () => {
   it("names window buttons for accessibility and uses native captions on Windows", () => {
     const buttons = workspaceElement.querySelectorAll(".title-bar .window-buttons button");
 
+    expect(
+      Array.from(buttons).every((button) => button.matches(".icon-button.icon-button-no-scale")),
+    ).toBeTrue();
     expect(Array.from(buttons, (button) => button.getAttribute("aria-label"))).toEqual([
       "Minimize window",
       "Maximize window",

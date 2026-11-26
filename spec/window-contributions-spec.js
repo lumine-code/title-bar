@@ -1,3 +1,5 @@
+const { ipcRenderer } = require("electron");
+
 describe("Title bar window contributions", () => {
   let service, leases;
   beforeEach(async () => {
@@ -66,22 +68,27 @@ describe("Title bar window contributions", () => {
     expect(editor.getElement().ownerDocument).toBe(workspace.getMainWindow().getDocument());
   });
 
-  it("activates the additional window logo with Enter and Space", async () => {
+  it("activates the native logo button with Enter and Space", async () => {
+    jasmine.useRealClock();
     const workspace = lumine.workspace;
-    const extra = await workspace.openEditorWindow({ show: false });
-    const logo = extra.getElement().querySelector(".app-icon");
-    const attach = spyOn(workspace, "attachWindow").and.resolveTo(workspace.getMainWindow());
-    for (const key of ["Enter", " "]) {
-      const event = new (extra.getDOMWindow().KeyboardEvent)("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      });
-      logo.dispatchEvent(event);
-      expect(event.defaultPrevented).toBeTrue();
+    const workspaceElement = workspace.getMainWindow().getElement();
+    jasmine.attachToDOM(workspaceElement);
+    const logo = workspaceElement.querySelector("button.app-icon.icon-button");
+    const dispatch = spyOn(lumine.commands, "dispatch").and.returnValue(true);
+    logo.focus();
+    expect(document.activeElement).toBe(logo);
+
+    for (const keyCode of ["Enter", "Space"]) {
+      dispatch.calls.reset();
+      // Electron input injection sends the keypress separately from keydown.
+      for (const type of ["keyDown", "char", "keyUp"]) {
+        await ipcRenderer.invoke("lumine:window", "sendInputEvent", { type, keyCode });
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(dispatch.calls.allArgs().filter(([, command]) => command === "application:about"))
+        .withContext(keyCode)
+        .toEqual([[workspaceElement, "application:about"]]);
     }
-    expect(attach).toHaveBeenCalledTimes(2);
-    expect(attach.calls.allArgs()).toEqual([[extra], [extra]]);
   });
 
   it("keeps the main window logo's About action", () => {
