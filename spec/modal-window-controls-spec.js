@@ -65,9 +65,15 @@ describe("Title bar window controls above modal backdrops", () => {
           }
           await hover(button);
           expect(button.matches(":hover")).toBe(true);
+          const style = getComputedStyle(button);
+          if (chrome.element.classList.contains("theme-windows-11")) {
+            expect(style.borderRadius).toBe("0px");
+          } else if (chrome.element.classList.contains("theme-gnome")) {
+            expect(style.borderRadius).toBe("50%");
+          }
           const color = chrome.element.classList.contains("theme-macos-tahoe")
             ? getComputedStyle(button, "::before").backgroundColor
-            : getComputedStyle(button).backgroundColor;
+            : style.backgroundColor;
           expect(color).not.toBe("rgba(0, 0, 0, 0)");
           await pointer("mouseDown", button);
           await pointer("mouseUp", button);
