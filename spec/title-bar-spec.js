@@ -34,8 +34,8 @@ describe("Title Bar package", () => {
     const buttons = workspaceElement.querySelectorAll(".title-bar .window-buttons button");
 
     expect(
-      Array.from(buttons).every((button) => button.matches(".icon-button.icon-button-no-scale")),
-    ).toBeTrue();
+      Array.from(buttons).some((button) => button.classList.contains("icon-button")),
+    ).toBeFalse();
     expect(Array.from(buttons, (button) => button.getAttribute("aria-label"))).toEqual([
       "Minimize window",
       "Maximize window",
